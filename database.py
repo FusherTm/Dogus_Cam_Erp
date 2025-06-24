@@ -13,11 +13,6 @@ class Database:
                         id INTEGER PRIMARY KEY, urun_adi TEXT NOT NULL UNIQUE, urun_tipi TEXT NOT NULL,
                         stok_miktari REAL NOT NULL, birim TEXT, maliyet_fiyati REAL
                     )''')
-        c.execute('''CREATE TABLE IF NOT EXISTS receteler (
-                        id INTEGER PRIMARY KEY, mamul_id INTEGER, hammadde_id INTEGER, miktar REAL NOT NULL,
-                        FOREIGN KEY (mamul_id) REFERENCES envanter (id) ON DELETE CASCADE,
-                        FOREIGN KEY (hammadde_id) REFERENCES envanter (id) ON DELETE CASCADE
-                    )''')
         c.execute('''CREATE TABLE IF NOT EXISTS stok_hareketleri (
                         id INTEGER PRIMARY KEY, urun_id INTEGER, tarih TEXT, hareket_tipi TEXT,
                         miktar REAL, fatura_id INTEGER, aciklama TEXT,
@@ -128,17 +123,6 @@ class Database:
         self.cursor.execute("SELECT * FROM envanter WHERE id=?", (urun_id,)); return self.cursor.fetchone()
 
     def urun_sil(self, id): self.cursor.execute("DELETE FROM envanter WHERE id=?", (id,)); self.conn.commit()
-    def recete_ekle(self, mamul_id, hammadde_id, miktar): self.cursor.execute("INSERT INTO receteler (mamul_id, hammadde_id, miktar) VALUES (?, ?, ?)", (mamul_id, hammadde_id, miktar)); self.conn.commit()
-    def recete_getir(self, mamul_id): self.cursor.execute("SELECT r.id, e.urun_adi, r.miktar, e.birim FROM receteler r JOIN envanter e ON r.hammadde_id = e.id WHERE r.mamul_id = ?", (mamul_id,)); return self.cursor.fetchall()
-    def recete_sil(self, recete_id): self.cursor.execute("DELETE FROM receteler WHERE id = ?", (recete_id,)); self.conn.commit()
-    def mamul_maliyeti_hesapla_ve_guncelle(self, mamul_id):
-        recete_kalemleri, toplam_maliyet = self.recete_getir(mamul_id), 0
-        for kalem in recete_kalemleri:
-            hammadde_adi, gereken_miktar = kalem[1], kalem[2]
-            self.cursor.execute("SELECT maliyet_fiyati FROM envanter WHERE urun_adi = ?", (hammadde_adi,)); hammadde_maliyet_fiyati = self.cursor.fetchone()
-            if hammadde_maliyet_fiyati and hammadde_maliyet_fiyati[0] is not None: toplam_maliyet += gereken_miktar * hammadde_maliyet_fiyati[0]
-        self.cursor.execute("UPDATE envanter SET maliyet_fiyati = ? WHERE id = ?", (toplam_maliyet, mamul_id)); self.conn.commit()
-        return toplam_maliyet
 
     # --- STOK HAREKETLERİ ---
     def stok_guncelle(self, urun_id, miktar, hareket_tipi):
