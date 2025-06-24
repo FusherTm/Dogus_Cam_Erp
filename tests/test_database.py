@@ -1,4 +1,8 @@
+import os
+import sys
 import pytest
+
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from database import Database
 
 @pytest.fixture
@@ -9,24 +13,24 @@ def db():
     db.musteri_ekle('XYZ', 'Yetkili', '2', 'x@y.com', 'adres2')
     # work orders
     db.cursor.execute(
-        "INSERT INTO is_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?,?,?,?,?)",
-        (1, 'Glass1', 10, 'Bekliyor', '2023-01-01'))
+        "INSERT INTO is_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?,?,?,?,?,?,?)",
+        (1, 'CustA', 'Glass1', 10, 100, 'Bekliyor', '2023-01-01'))
     db.cursor.execute(
-        "INSERT INTO is_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?,?,?,?,?)",
-        (2, 'Glass2', 15, 'Bekliyor', '2023-01-02'))
+        "INSERT INTO is_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?,?,?,?,?,?,?)",
+        (2, 'CustB', 'Glass2', 15, 150, 'Bekliyor', '2023-01-02'))
     db.cursor.execute(
-        "INSERT INTO is_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?,?,?,?,?)",
-        (1, 'Special', 5, 'Bekliyor', '2023-01-02'))
+        "INSERT INTO is_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?,?,?,?,?,?,?)",
+        (1, 'CustC', 'Special', 5, 50, 'Bekliyor', '2023-01-02'))
     # temper orders
     db.cursor.execute(
-        "INSERT INTO temper_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?,?,?,?,?)",
-        (1, 'TemGlass1', 10, 'Bekliyor', '2023-01-01'))
+        "INSERT INTO temper_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?,?,?,?,?,?,?)",
+        (1, 'CustA', 'TemGlass1', 10, 200, 'Bekliyor', '2023-01-01'))
     db.cursor.execute(
-        "INSERT INTO temper_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?,?,?,?,?)",
-        (2, 'TemGlass2', 15, 'Bekliyor', '2023-01-02'))
+        "INSERT INTO temper_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?,?,?,?,?,?,?)",
+        (2, 'CustB', 'TemGlass2', 15, 300, 'Bekliyor', '2023-01-02'))
     db.cursor.execute(
-        "INSERT INTO temper_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?,?,?,?,?)",
-        (1, 'TemSpecial', 5, 'Bekliyor', '2023-01-02'))
+        "INSERT INTO temper_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?,?,?,?,?,?,?)",
+        (1, 'CustC', 'TemSpecial', 5, 100, 'Bekliyor', '2023-01-02'))
     db.conn.commit()
     return db
 

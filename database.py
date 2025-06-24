@@ -71,15 +71,39 @@ class Database:
                         kategori_id INTEGER, FOREIGN KEY (kategori_id) REFERENCES kategoriler (id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS is_emirleri (
-                        id INTEGER PRIMARY KEY, musteri_id INTEGER, urun_niteligi TEXT,
-                        miktar_m2 REAL, durum TEXT, tarih TEXT,
+                        id INTEGER PRIMARY KEY,
+                        musteri_id INTEGER,
+                        firma_musterisi TEXT,
+                        urun_niteligi TEXT,
+                        miktar_m2 REAL,
+                        fiyat REAL,
+                        durum TEXT,
+                        tarih TEXT,
                         FOREIGN KEY (musteri_id) REFERENCES musteriler(id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS temper_emirleri (
-                        id INTEGER PRIMARY KEY, musteri_id INTEGER, urun_niteligi TEXT,
-                        miktar_m2 REAL, durum TEXT, tarih TEXT,
+                        id INTEGER PRIMARY KEY,
+                        musteri_id INTEGER,
+                        firma_musterisi TEXT,
+                        urun_niteligi TEXT,
+                        miktar_m2 REAL,
+                        fiyat REAL,
+                        durum TEXT,
+                        tarih TEXT,
                         FOREIGN KEY (musteri_id) REFERENCES musteriler(id) ON DELETE SET NULL
                     )''')
+        self.conn.commit()
+
+        # Ensure new columns exist when database was created with older schema
+        for table, cols in {
+            'is_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
+            'temper_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')]
+        }.items():
+            self.cursor.execute(f"PRAGMA table_info({table})")
+            existing = [row[1] for row in self.cursor.fetchall()]
+            for col_name, col_type in cols:
+                if col_name not in existing:
+                    self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}")
         self.conn.commit()
 
     # --- ENVANTER & REÇETE ---
@@ -229,8 +253,14 @@ class Database:
         self.cursor.execute("SELECT tarih, aciklama, gelir, gider FROM finansal_hareketler WHERE hesap_id = ? ORDER BY tarih DESC, id DESC", (hesap_id,)); return self.cursor.fetchall()
         
     # --- İŞ EMİRLERİ ---
-    def is_emri_ekle(self, musteri_id, urun_niteligi, miktar_m2, durum="Bekliyor"):
-        tarih = datetime.datetime.now().strftime('%Y-%m-%d'); self.cursor.execute("INSERT INTO is_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?, ?, ?, ?, ?)", (musteri_id, urun_niteligi, miktar_m2, durum, tarih)); self.conn.commit()
+    def is_emri_ekle(self, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, tarih=None, durum="Bekliyor"):
+        if tarih is None:
+            tarih = datetime.datetime.now().strftime('%Y-%m-%d')
+        self.cursor.execute(
+            "INSERT INTO is_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih)
+        )
+        self.conn.commit()
     def is_emirlerini_getir(self, arama_terimi=""):
         query = (
             "SELECT i.id, i.tarih, m.firma_adi, i.urun_niteligi, i.miktar_m2, i.durum "
@@ -247,8 +277,14 @@ class Database:
     def is_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM is_emirleri WHERE musteri_id = ? ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
 
     # --- TEMPER SİPARİŞ FONKSİYONLARI ---
-    def temper_emri_ekle(self, musteri_id, urun_niteligi, miktar_m2, durum="Bekliyor"):
-        tarih = datetime.datetime.now().strftime('%Y-%m-%d'); self.cursor.execute("INSERT INTO temper_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?, ?, ?, ?, ?)", (musteri_id, urun_niteligi, miktar_m2, durum, tarih)); self.conn.commit()
+    def temper_emri_ekle(self, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, tarih=None, durum="Bekliyor"):
+        if tarih is None:
+            tarih = datetime.datetime.now().strftime('%Y-%m-%d')
+        self.cursor.execute(
+            "INSERT INTO temper_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih)
+        )
+        self.conn.commit()
     def temper_emirlerini_getir(self, arama_terimi=""):
         query = (
             "SELECT t.id, t.tarih, m.firma_adi, t.urun_niteligi, t.miktar_m2, t.durum "
