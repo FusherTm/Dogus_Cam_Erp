@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox, Menu
+from tkcalendar import DateEntry
 from database import Database
 
 class UretimFrame(ctk.CTkFrame):
@@ -77,43 +78,63 @@ class UretimFrame(ctk.CTkFrame):
 
         win = ctk.CTkToplevel(self)
         win.title("Yeni İş Emri")
-        win.geometry("500x350")
-        
-        ctk.CTkLabel(win, text="Firma (Cari):").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        win.geometry("500x450")
+
+        ctk.CTkLabel(win, text="Tarih:").grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.is_emri_tarih_entry = DateEntry(win, date_pattern='y-mm-dd')
+        self.is_emri_tarih_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+
+        ctk.CTkLabel(win, text="Firma (Cari):").grid(row=1, column=0, padx=10, pady=10, sticky="w")
         musteri_cerceve = ctk.CTkFrame(win, fg_color="transparent")
-        musteri_cerceve.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+        musteri_cerceve.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
         musteri_cerceve.grid_columnconfigure(0, weight=1)
         self.yeni_is_emri_musteri_entry = ctk.CTkEntry(musteri_cerceve, placeholder_text="Muhtelif (Seçim zorunlu değil)")
         self.yeni_is_emri_musteri_entry.configure(state="disabled")
         self.yeni_is_emri_musteri_entry.grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(musteri_cerceve, text="...", width=40, command=lambda: self.cari_sec_penceresi_ac(win)).grid(row=0, column=1, padx=(5,0))
 
-        ctk.CTkLabel(win, text="Ürün Niteliği:").grid(row=1, column=0, padx=10, pady=10, sticky="w")
-        self.yeni_is_emri_nitelik_entry = ctk.CTkEntry(win, placeholder_text="Örn: 4+16+4 Konfor Isıcam")
-        self.yeni_is_emri_nitelik_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        ctk.CTkLabel(win, text="Firmanın Müşterisi:").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        self.is_emri_firma_musterisi_entry = ctk.CTkEntry(win)
+        self.is_emri_firma_musterisi_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
 
-        ctk.CTkLabel(win, text="Miktar (m²):").grid(row=2, column=0, padx=10, pady=10, sticky="w")
+        ctk.CTkLabel(win, text="Ürün Niteliği:").grid(row=3, column=0, padx=10, pady=10, sticky="w")
+        self.yeni_is_emri_nitelik_entry = ctk.CTkEntry(win, placeholder_text="Örn: 4+16+4 Konfor Isıcam")
+        self.yeni_is_emri_nitelik_entry.grid(row=3, column=1, padx=10, pady=10, sticky="ew")
+
+        ctk.CTkLabel(win, text="Miktar (m²):").grid(row=4, column=0, padx=10, pady=10, sticky="w")
         self.yeni_is_emri_miktar_entry = ctk.CTkEntry(win)
-        self.yeni_is_emri_miktar_entry.grid(row=2, column=1, padx=10, pady=10, sticky="ew")
+        self.yeni_is_emri_miktar_entry.grid(row=4, column=1, padx=10, pady=10, sticky="ew")
+
+        ctk.CTkLabel(win, text="Fiyat:").grid(row=5, column=0, padx=10, pady=10, sticky="w")
+        self.is_emri_fiyat_entry = ctk.CTkEntry(win)
+        self.is_emri_fiyat_entry.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
 
         def kaydet():
-            # GÜNCELLENDİ: Cari seçme zorunluluğu kaldırıldı.
             nitelik = self.yeni_is_emri_nitelik_entry.get()
             miktar_str = self.yeni_is_emri_miktar_entry.get()
-            if not all([nitelik, miktar_str]): return messagebox.showerror("Hata", "Ürün Niteliği ve Miktar alanları doldurulmalıdır.", parent=win)
-            try: miktar = float(miktar_str.replace(',', '.'))
-            except ValueError: return messagebox.showerror("Hata", "Miktar sayısal olmalıdır.", parent=win)
-            
-            # self.secili_musteri_id_yeni_is_emri 'None' olabilir, bu sorun değil.
-            self.db.is_emri_ekle(self.secili_musteri_id_yeni_is_emri, nitelik, miktar)
+            fiyat_str = self.is_emri_fiyat_entry.get()
+            tarih = self.is_emri_tarih_entry.get_date().strftime('%Y-%m-%d')
+            firma_must = self.is_emri_firma_musterisi_entry.get()
+            if not all([nitelik, miktar_str, fiyat_str]):
+                return messagebox.showerror("Hata", "Tüm alanlar doldurulmalıdır.", parent=win)
+            try:
+                miktar = float(miktar_str.replace(',', '.'))
+                fiyat = float(fiyat_str.replace(',', '.'))
+            except ValueError:
+                return messagebox.showerror("Hata", "Miktar ve Fiyat sayısal olmalıdır.", parent=win)
+
+            self.db.is_emri_ekle(self.secili_musteri_id_yeni_is_emri, firma_must, nitelik, miktar, fiyat, tarih)
+            if self.secili_musteri_id_yeni_is_emri:
+                self.db.musteri_hesap_hareketi_ekle(self.secili_musteri_id_yeni_is_emri, tarih, f"İş Emri: {nitelik}", fiyat, 0)
             messagebox.showinfo("Başarılı", "İş emri başarıyla eklendi.")
             self.is_emirlerini_goster()
-            # Müşteri seçildiyse, müşteri sekmesini de yenile
             if self.secili_musteri_id_yeni_is_emri and hasattr(self.app, 'musteri_frame'):
                 self.app.musteri_frame.is_gecmisini_goster(self.secili_musteri_id_yeni_is_emri)
+                self.app.musteri_frame.hesap_hareketlerini_goster(self.secili_musteri_id_yeni_is_emri)
+                self.app.musteri_frame.musterileri_goster()
             win.destroy()
 
-        ctk.CTkButton(win, text="Kaydet", command=kaydet, height=35).grid(row=3, column=1, padx=10, pady=20, sticky="e")
+        ctk.CTkButton(win, text="Kaydet", command=kaydet, height=35).grid(row=6, column=1, padx=10, pady=20, sticky="e")
         win.grid_columnconfigure(1, weight=1)
         win.transient(self); win.grab_set()
 
