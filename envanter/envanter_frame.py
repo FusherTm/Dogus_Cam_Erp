@@ -49,6 +49,7 @@ class EnvanterFrame(ctk.CTkFrame):
         button_frame.pack(pady=20, padx=20, fill="x")
         ctk.CTkButton(button_frame, text="Ekle", command=self.urun_ekle).pack(side="left", expand=True, padx=5)
         ctk.CTkButton(button_frame, text="Güncelle", command=self.urun_guncelle).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(button_frame, text="Sil", command=self.urun_sil, fg_color="#E54E55", hover_color="#C4424A").pack(side="left", expand=True, padx=5)
         ctk.CTkButton(button_frame, text="Temizle", command=self.formu_temizle).pack(side="left", expand=True, padx=5)
         
         # Sağ Liste Sütunu
@@ -103,6 +104,15 @@ class EnvanterFrame(ctk.CTkFrame):
             self.db.urun_guncelle(secili, ad, tip, float(stok), birim, float(maliyet))
             messagebox.showinfo("Başarılı", "Ürün güncellendi."); self.yenile_tum_verileri()
         except ValueError: messagebox.showerror("Hata", "Stok ve maliyet sayısal olmalıdır.")
+
+    def urun_sil(self):
+        secili = self.urun_tree.focus()
+        if not secili:
+            return messagebox.showerror("Hata", "Silmek için bir ürün seçin.")
+        if messagebox.askyesno("Onay", "Seçili ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."):
+            self.db.urun_sil(secili)
+            messagebox.showinfo("Başarılı", "Ürün silindi.")
+            self.yenile_tum_verileri()
 
     def urun_sec(self, event):
         secili = self.urun_tree.focus();

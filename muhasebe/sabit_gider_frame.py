@@ -72,6 +72,7 @@ class SabitGiderFrame(ctk.CTkFrame):
         self.tree.heading("Gider Adı", text="Gider Adı")
         self.tree.heading("Tutar", text="Aylık Tutar", anchor="e"); self.tree.column("Tutar", anchor="e")
         self.tree.heading("Kategori", text="Kategori")
+        ctk.CTkButton(sag_sutun, text="Seçili Gideri Sil", command=self.gider_sil, fg_color="#E54E55", hover_color="#C4424A").pack(fill="x", padx=10, pady=(0,10))
 
     def sabit_giderleri_goster(self):
         for i in self.tree.get_children(): self.tree.delete(i)
@@ -129,6 +130,16 @@ class SabitGiderFrame(ctk.CTkFrame):
         if kategori and messagebox.askyesno("Onay", f"'{secilen_kategori_ad}' kategorisini silmek istediğinizden emin misiniz?"):
             self.db.kategori_sil(kategori[0])
             messagebox.showinfo("Başarılı", "Kategori silindi.")
+            self.yenile()
+
+    def gider_sil(self):
+        secili = self.tree.focus()
+        if not secili:
+            return messagebox.showerror("Hata", "Silmek için bir gider seçin.")
+        gider_id = self.tree.item(secili)['values'][0]
+        if messagebox.askyesno("Onay", "Seçili gideri silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."):
+            self.db.sabit_gider_sil(gider_id)
+            messagebox.showinfo("Başarılı", "Sabit gider silindi.")
             self.yenile()
 
     def kategori_listesini_guncelle(self):

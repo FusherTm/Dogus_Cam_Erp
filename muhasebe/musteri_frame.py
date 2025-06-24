@@ -37,6 +37,7 @@ class MusteriFrame(ctk.CTkFrame):
         button_frame = ctk.CTkFrame(form_frame, fg_color="transparent"); button_frame.pack(padx=10, pady=10, fill="x")
         ctk.CTkButton(button_frame, text="Ekle", command=self.musteri_ekle).pack(side="left", expand=True, padx=5)
         ctk.CTkButton(button_frame, text="Güncelle", command=self.musteri_guncelle).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(button_frame, text="Sil", command=self.musteri_sil, fg_color="#E54E55", hover_color="#C4424A").pack(side="left", expand=True, padx=5)
         ctk.CTkButton(button_frame, text="Temizle", command=self.formu_temizle).pack(side="left", expand=True, padx=5)
 
         list_frame = ctk.CTkFrame(top_frame); list_frame.grid(row=0, column=1, padx=(10, 0), pady=10, sticky="nsew")
@@ -106,6 +107,14 @@ class MusteriFrame(ctk.CTkFrame):
         if not firma_adi: return messagebox.showerror("Hata", "Firma Adı alanı zorunludur.")
         self.db.musteri_guncelle(self.selected_musteri_id, firma_adi, self.yetkili_entry.get(), self.tel_entry.get(), self.email_entry.get(), self.adres_entry.get("1.0", "end-1c"))
         messagebox.showinfo("Başarılı", "Müşteri bilgileri güncellendi."); self.yenile_ve_entegre_et()
+
+    def musteri_sil(self):
+        if not self.selected_musteri_id:
+            return messagebox.showerror("Hata", "Silmek için bir müşteri seçin.")
+        if messagebox.askyesno("Onay", "Seçili müşteriyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz."):
+            self.db.musteri_sil(self.selected_musteri_id)
+            messagebox.showinfo("Başarılı", "Müşteri silindi.")
+            self.yenile_ve_entegre_et()
 
     def musteri_sec(self, event=None):
         selected_item = self.musteri_tree.focus();
