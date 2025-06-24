@@ -170,3 +170,6 @@ class UretimFrame(ctk.CTkFrame):
     def durumu_guncelle(self, is_emri_id, yeni_durum):
         self.db.is_emri_durum_guncelle(is_emri_id, yeni_durum)
         self.is_emirlerini_goster(self.arama_entry.get())
+        emri = self.db.is_emri_getir_by_id(is_emri_id)
+        if emri and hasattr(self.app, 'event_bus'):
+            self.app.event_bus.publish('is_emri_guncellendi', emri[1])

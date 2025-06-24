@@ -165,3 +165,6 @@ class TemperFrame(ctk.CTkFrame):
     def durumu_guncelle(self, siparis_id, yeni_durum):
         self.db.temper_emri_durum_guncelle(siparis_id, yeni_durum)
         self.temper_emirlerini_goster(self.arama_entry.get())
+        emri = self.db.temper_emri_getir_by_id(siparis_id)
+        if emri and hasattr(self.app, 'event_bus'):
+            self.app.event_bus.publish('temper_emri_guncellendi', emri[1])

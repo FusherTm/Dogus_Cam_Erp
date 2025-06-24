@@ -12,6 +12,7 @@ from envanter.envanter_frame import EnvanterFrame
 from personel.personel_frame import PersonelFrame
 from uretim.uretim_frame import UretimFrame
 from temper.temper_frame import TemperFrame
+from event_bus import EventBus
 
 # Gerekli kütüphanelerin kontrolü
 try:
@@ -28,6 +29,9 @@ class App(ctk.CTk):
         super().__init__()
         self.title("Doğuş ERP Sistemi")
         self.geometry("1440x820")
+
+        # Global event bus for cross-module notifications
+        self.event_bus = EventBus()
         
         # Ana Pencere Grid Yapılandırması (Başlık için üstte küçük bir alan, altta ana alan)
         self.grid_rowconfigure(0, weight=0) # Başlık satırı
