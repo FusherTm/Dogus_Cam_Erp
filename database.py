@@ -150,6 +150,19 @@ class Database:
         tarih = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         self.cursor.execute("INSERT INTO stok_hareketleri (urun_id, tarih, hareket_tipi, miktar, fatura_id, aciklama) VALUES (?, ?, ?, ?, ?, ?)", (urun_id, tarih, hareket_tipi, miktar, fatura_id, aciklama)); self.conn.commit()
 
+    def stok_hareketlerini_getir(self, urun_id=None):
+        query = (
+            "SELECT sh.id, sh.tarih, e.urun_adi, sh.hareket_tipi, sh.miktar, sh.aciklama "
+            "FROM stok_hareketleri sh JOIN envanter e ON sh.urun_id = e.id"
+        )
+        params = []
+        if urun_id is not None:
+            query += " WHERE sh.urun_id = ?"
+            params.append(urun_id)
+        query += " ORDER BY sh.tarih DESC, sh.id DESC"
+        self.cursor.execute(query, tuple(params))
+        return self.cursor.fetchall()
+
     # --- MÜŞTERİ (CARİ) ---
     def musteri_ekle(self, firma_adi, yetkili, telefon, email, adres):
         try:

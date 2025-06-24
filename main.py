@@ -9,6 +9,7 @@ from muhasebe.rapor_frame import RaporFrame
 from muhasebe.sabit_gider_frame import SabitGiderFrame
 from faturalar.fatura_frame import FaturaFrame
 from envanter.envanter_frame import EnvanterFrame
+from envanter.stok_hareket_frame import StokHareketFrame
 from personel.personel_frame import PersonelFrame
 from uretim.uretim_frame import UretimFrame
 from temper.temper_frame import TemperFrame
@@ -50,6 +51,7 @@ class App(ctk.CTk):
         self.tab_view.add("İş Emirleri") 
         self.tab_view.add("Temper Siparişleri")
         self.tab_view.add("Envanter")
+        self.tab_view.add("Stok Hareketleri")
         self.tab_view.add("Personel")
         self.tab_view.add("Faturalar")
        
@@ -77,6 +79,10 @@ class App(ctk.CTk):
         # Envanter Sekmesi
         self.envanter_frame = EnvanterFrame(self.tab_view.tab("Envanter"), self)
         self.envanter_frame.pack(expand=True, fill="both")
+
+        # Stok Hareketleri Sekmesi
+        self.stok_hareket_frame = StokHareketFrame(self.tab_view.tab("Stok Hareketleri"), self)
+        self.stok_hareket_frame.pack(expand=True, fill="both")
 
         # Personel Sekmesi
         self.personel_frame = PersonelFrame(self.tab_view.tab("Personel"), self)
