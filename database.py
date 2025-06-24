@@ -193,6 +193,13 @@ class Database:
         query = "SELECT e.urun_adi, fk.miktar, fk.birim_fiyat, fk.toplam FROM fatura_kalemleri fk JOIN envanter e ON fk.urun_id = e.id WHERE fk.fatura_id = ?"
         self.cursor.execute(query, (fatura_id,)); return self.cursor.fetchall()
 
+    def faturalari_getir_by_musteri_id(self, musteri_id):
+        self.cursor.execute(
+            "SELECT id, tarih, fatura_no, toplam_tutar FROM faturalar WHERE musteri_id = ? ORDER BY tarih DESC, id DESC",
+            (musteri_id,)
+        )
+        return self.cursor.fetchall()
+
     # --- PERSONEL ---
     def personel_ekle(self, ad_soyad, pozisyon, ise_baslama, maas, tc, tel): self.cursor.execute("INSERT INTO personel (ad_soyad, pozisyon, ise_baslama_tarihi, maas, tc_kimlik, telefon) VALUES (?, ?, ?, ?, ?, ?)", (ad_soyad, pozisyon, ise_baslama, maas, tc, tel)); self.conn.commit()
     def personelleri_getir(self): self.cursor.execute("SELECT * FROM personel"); return self.cursor.fetchall()
