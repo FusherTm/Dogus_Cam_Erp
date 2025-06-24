@@ -232,9 +232,16 @@ class Database:
     def is_emri_ekle(self, musteri_id, urun_niteligi, miktar_m2, durum="Bekliyor"):
         tarih = datetime.datetime.now().strftime('%Y-%m-%d'); self.cursor.execute("INSERT INTO is_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?, ?, ?, ?, ?)", (musteri_id, urun_niteligi, miktar_m2, durum, tarih)); self.conn.commit()
     def is_emirlerini_getir(self, arama_terimi=""):
-        query = "SELECT i.id, i.tarih, m.firma_adi, i.urun_niteligi, i.miktar_m2, i.durum FROM is_emirleri i LEFT JOIN musteriler m ON i.musteri_id = m.id"
-        if arama_terimi: query += " WHERE m.firma_adi LIKE ? OR i.urun_niteligi LIKE ?"; self.cursor.execute(query, (f'%{arama_terimi}%', f'%{arama_terimi}%'))
-        else: self.cursor.execute(query + " ORDER BY i.tarih DESC, i.id DESC")
+        query = (
+            "SELECT i.id, i.tarih, m.firma_adi, i.urun_niteligi, i.miktar_m2, i.durum "
+            "FROM is_emirleri i LEFT JOIN musteriler m ON i.musteri_id = m.id"
+        )
+        params = ()
+        if arama_terimi:
+            query += " WHERE m.firma_adi LIKE ? OR i.urun_niteligi LIKE ?"
+            params = (f"%{arama_terimi}%", f"%{arama_terimi}%")
+        query += " ORDER BY i.tarih DESC, i.id DESC"
+        self.cursor.execute(query, params)
         return self.cursor.fetchall()
     def is_emri_durum_guncelle(self, is_emri_id, yeni_durum): self.cursor.execute("UPDATE is_emirleri SET durum = ? WHERE id = ?", (yeni_durum, is_emri_id)); self.conn.commit()
     def is_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM is_emirleri WHERE musteri_id = ? ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
@@ -243,9 +250,16 @@ class Database:
     def temper_emri_ekle(self, musteri_id, urun_niteligi, miktar_m2, durum="Bekliyor"):
         tarih = datetime.datetime.now().strftime('%Y-%m-%d'); self.cursor.execute("INSERT INTO temper_emirleri (musteri_id, urun_niteligi, miktar_m2, durum, tarih) VALUES (?, ?, ?, ?, ?)", (musteri_id, urun_niteligi, miktar_m2, durum, tarih)); self.conn.commit()
     def temper_emirlerini_getir(self, arama_terimi=""):
-        query = "SELECT t.id, t.tarih, m.firma_adi, t.urun_niteligi, t.miktar_m2, t.durum FROM temper_emirleri t LEFT JOIN musteriler m ON t.musteri_id = m.id"
-        if arama_terimi: query += " WHERE m.firma_adi LIKE ? OR t.urun_niteligi LIKE ?"; self.cursor.execute(query, (f'%{arama_terimi}%', f'%{arama_terimi}%'))
-        else: self.cursor.execute(query + " ORDER BY t.tarih DESC, t.id DESC")
+        query = (
+            "SELECT t.id, t.tarih, m.firma_adi, t.urun_niteligi, t.miktar_m2, t.durum "
+            "FROM temper_emirleri t LEFT JOIN musteriler m ON t.musteri_id = m.id"
+        )
+        params = ()
+        if arama_terimi:
+            query += " WHERE m.firma_adi LIKE ? OR t.urun_niteligi LIKE ?"
+            params = (f"%{arama_terimi}%", f"%{arama_terimi}%")
+        query += " ORDER BY t.tarih DESC, t.id DESC"
+        self.cursor.execute(query, params)
         return self.cursor.fetchall()
     def temper_emri_durum_guncelle(self, temper_emri_id, yeni_durum): self.cursor.execute("UPDATE temper_emirleri SET durum = ? WHERE id = ?", (yeni_durum, temper_emri_id)); self.conn.commit()
     def temper_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM temper_emirleri WHERE musteri_id = ? ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
