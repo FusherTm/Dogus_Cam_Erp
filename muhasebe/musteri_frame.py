@@ -1,5 +1,8 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
+import tempfile
+import os
+import webbrowser
 from database import Database
 import datetime
 
@@ -56,6 +59,10 @@ class MusteriFrame(ctk.CTkFrame):
         self.musteri_tree.heading("Firma Adı", text="Firma Adı"); self.musteri_tree.heading("Yetkili", text="Yetkili")
         self.musteri_tree.heading("Bakiye", text="Bakiye", anchor="e"); self.musteri_tree.column("Bakiye", anchor="e")
         self.musteri_tree.bind("<<TreeviewSelect>>", self.musteri_sec)
+
+        # Ekstre görüntüleme butonu
+        self.ekstre_button = ctk.CTkButton(list_frame, text="Hesap Ekstresi", state="disabled", command=self.hesap_ekstresi_goruntule)
+        self.ekstre_button.pack(fill="x", padx=10, pady=(0,10))
 
         # GÜNCELLENDİ: Alt kısma üçüncü sekme eklendi
         alt_tab_view = ctk.CTkTabview(self); alt_tab_view.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
@@ -133,6 +140,7 @@ class MusteriFrame(ctk.CTkFrame):
             self.hesap_hareketlerini_goster(musteri[0])
             self.is_gecmisini_goster(musteri[0])
             self.temper_gecmisini_goster(musteri[0]) # YENİ
+            self.ekstre_button.configure(state="normal")
 
     def hesap_hareketlerini_goster(self, musteri_id):
         for i in self.hesap_tree.get_children(): self.hesap_tree.delete(i)
@@ -151,6 +159,100 @@ class MusteriFrame(ctk.CTkFrame):
         for temper_emri in self.db.temper_emirlerini_getir_by_musteri_id(musteri_id):
             self.temper_emri_tree.insert("", "end", values=temper_emri, tags=(temper_emri[4],))
 
+    # Yeni: seçili müşterinin hesap ekstresini HTML olarak görüntüle
+    def hesap_ekstresi_goruntule(self):
+        if not self.selected_musteri_id:
+            return messagebox.showerror("Hata", "Önce bir müşteri seçin.")
+
+        musteri = self.db.musteri_getir_by_id(self.selected_musteri_id)
+        hareketler = self.db.musteri_hesap_hareketlerini_getir(self.selected_musteri_id)
+        html = self._ekstre_html_olustur(musteri, hareketler)
+
+        fd, html_path = tempfile.mkstemp(suffix='.html')
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(html)
+
+        webbrowser.open_new_tab('file://' + html_path)
+
+        win = ctk.CTkToplevel(self)
+        win.title("Hesap Ekstresi")
+        win.geometry('350x120')
+        msg = "Ekstre tarayıcıda açıldı. Yazdırmak için tarayıcıdan Ctrl+P kullanın."
+        ctk.CTkLabel(win, text=msg, wraplength=320).pack(padx=10, pady=10)
+        ctk.CTkButton(win, text="PDF İndir", command=lambda: self._ekstre_pdf_indir(html, musteri, win)).pack(pady=5)
+        win.grab_set()
+
+    def _ekstre_html_olustur(self, musteri, hareketler):
+        firma = musteri[1]
+        yetkili = musteri[2] or ''
+        tel = musteri[3] or ''
+        email = musteri[4] or ''
+        rows = ''
+        for h in hareketler:
+            borc = f"{h[4]:.2f}" if h[4] else ''
+            alacak = f"{h[5]:.2f}" if h[5] else ''
+            bakiye = f"{h[6]:.2f}"
+            rows += f"<tr><td>{h[2]}</td><td>{h[3]}</td><td class='num'>{borc}</td><td class='num'>{alacak}</td><td class='num'>{bakiye}</td></tr>"
+        html = f"""
+        <html><head><meta charset='utf-8'>
+        <style>
+        body{{font-family:Arial, Helvetica, sans-serif;}}
+        table{{border-collapse:collapse;width:100%;}}
+        th,td{{border:1px solid #ccc;padding:4px;text-align:left;}}
+        th{{background:#eee;}}
+        td.num{{text-align:right;}}
+        </style></head>
+        <body>
+        <h2>{firma}</h2>
+        <p>Yetkili: {yetkili}<br>Telefon: {tel}<br>Email: {email}</p>
+        <table>
+        <tr><th>Tarih</th><th>Açıklama</th><th>Borç</th><th>Alacak</th><th>Bakiye</th></tr>
+        {rows}
+        </table>
+        </body></html>
+        """
+        return html
+
+    def _ekstre_pdf_indir(self, html, musteri, parent_win=None):
+        pdf_path = os.path.join(tempfile.gettempdir(), f"musteri_{musteri[0]}_ekstre.pdf")
+        try:
+            import pdfkit
+            pdfkit.from_string(html, pdf_path)
+        except Exception:
+            try:
+                from weasyprint import HTML
+                HTML(string=html).write_pdf(pdf_path)
+            except Exception:
+                try:
+                    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+                    from reportlab.lib.pagesizes import A4
+                    from reportlab.lib import colors
+                    from reportlab.lib.styles import getSampleStyleSheet
+
+                    doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+                    styles = getSampleStyleSheet()
+                    elems = [Paragraph(musteri[1], styles['Title']),
+                             Paragraph(f"Telefon: {musteri[3]}", styles['Normal']),
+                             Spacer(1,12)]
+                    data = [["Tarih","Açıklama","Borç","Alacak","Bakiye"]]
+                    for h in self.db.musteri_hesap_hareketlerini_getir(musteri[0]):
+                        data.append([h[2], h[3],
+                                     f"{h[4]:.2f}" if h[4] else '',
+                                     f"{h[5]:.2f}" if h[5] else '',
+                                     f"{h[6]:.2f}"])
+                    table = Table(data, colWidths=[60,170,50,50,50])
+                    table.setStyle(TableStyle([
+                        ('GRID',(0,0),(-1,-1),0.5,colors.black),
+                        ('BACKGROUND',(0,0),(-1,0),colors.lightgrey)
+                    ]))
+                    elems.append(table)
+                    doc.build(elems)
+                except Exception:
+                    messagebox.showerror("Hata", "PDF oluşturmak için pdfkit, weasyprint veya reportlab kütüphanelerinden biri gereklidir.", parent=parent_win)
+                    return
+        messagebox.showinfo("PDF Kaydedildi", pdf_path, parent=parent_win)
+        webbrowser.open_new_tab('file://' + pdf_path)
+
     def formu_temizle(self, clear_selection=True):
         self.firma_adi_entry.delete(0, "end"); self.yetkili_entry.delete(0, "end")
         self.tel_entry.delete(0, "end"); self.email_entry.delete(0, "end")
@@ -160,6 +262,7 @@ class MusteriFrame(ctk.CTkFrame):
             if self.musteri_tree.selection(): self.musteri_tree.selection_remove(self.musteri_tree.selection()[0])
             for tree in [self.hesap_tree, self.is_emri_tree, self.temper_emri_tree]:
                 for i in tree.get_children(): tree.delete(i)
+            self.ekstre_button.configure(state="disabled")
             
     def yenile_ve_entegre_et(self):
         self.musterileri_goster(); self.formu_temizle()
