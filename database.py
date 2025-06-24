@@ -34,7 +34,7 @@ class Database:
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS fatura_kalemleri (
                         id INTEGER PRIMARY KEY AUTOINCREMENT, fatura_id INTEGER, urun_id INTEGER,
-                        miktar INTEGER, birim_fiyat REAL, toplam REAL,
+                        miktar REAL, birim_fiyat REAL, toplam REAL,
                         FOREIGN KEY (fatura_id) REFERENCES faturalar (id) ON DELETE CASCADE,
                         FOREIGN KEY (urun_id) REFERENCES envanter (id)
                     )''')
