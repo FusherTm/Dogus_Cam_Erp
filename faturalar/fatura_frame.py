@@ -43,7 +43,7 @@ class FaturaFrame(ctk.CTkFrame):
         self.urun_menu = ctk.CTkOptionMenu(urun_ekle_frame, values=["Ürün Seçin"]); self.urun_menu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(urun_ekle_frame, text="Miktar / m²:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.miktar_entry = ctk.CTkEntry(urun_ekle_frame); self.miktar_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-        ctk.CTkLabel(urun_ekle_frame, text="Birim Fiyat:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        ctk.CTkLabel(urun_ekle_frame, text="Birim Fiyatı:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
         self.birim_fiyat_entry = ctk.CTkEntry(urun_ekle_frame); self.birim_fiyat_entry.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkButton(urun_ekle_frame, text="Faturaya Ekle", command=self.kalem_ekle).grid(row=4, column=0, columnspan=2, pady=10, sticky="ew")
         urun_ekle_frame.grid_columnconfigure(1, weight=1)
@@ -52,15 +52,15 @@ class FaturaFrame(ctk.CTkFrame):
         kalemler_frame = ctk.CTkFrame(main_frame); kalemler_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
         kalemler_frame.grid_rowconfigure(0, weight=1); kalemler_frame.grid_columnconfigure(0, weight=1)
         style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0); style.map('Treeview', background=[('selected', '#22559b')])
-        self.tree = ttk.Treeview(kalemler_frame, columns=("Ürün Adı", "Miktar / m²", "Birim Fiyat", "Toplam"), show="headings"); self.tree.grid(row=0, column=0, sticky="nsew")
+        self.tree = ttk.Treeview(kalemler_frame, columns=("Ürün Adı", "Miktar / m²", "Birim Fiyatı", "Toplam"), show="headings"); self.tree.grid(row=0, column=0, sticky="nsew")
         for col in self.tree['columns']: self.tree.heading(col, text=col)
         
         # Alt Buton ve Toplam Alanı
         alt_frame = ctk.CTkFrame(main_frame); alt_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
         alt_frame.grid_columnconfigure(0, weight=1)
         self.toplam_tutar_label = ctk.CTkLabel(alt_frame, text="Toplam Tutar: 0.00 ₺", font=ctk.CTkFont(size=16, weight="bold")); self.toplam_tutar_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        # YENİ: Invoice History Button
-        ctk.CTkButton(alt_frame, text="Invoice History", command=self.gecmis_faturalar_penceresi).grid(row=0, column=1, padx=5, pady=5)
+        # YENİ: Fatura Geçmişi Butonu
+        ctk.CTkButton(alt_frame, text="Fatura Geçmişi", command=self.gecmis_faturalar_penceresi).grid(row=0, column=1, padx=5, pady=5)
         ctk.CTkButton(alt_frame, text="Seçili Ürünü Sil", command=self.kalem_sil).grid(row=0, column=2, padx=5, pady=5)
         ctk.CTkButton(alt_frame, text="Faturayı Kaydet", command=self.faturayi_kaydet, height=35).grid(row=0, column=3, padx=5, pady=5)
 
@@ -129,10 +129,10 @@ class FaturaFrame(ctk.CTkFrame):
         win.grab_set()
         self.fatura_kalemleri.clear(); self.kalemleri_guncelle(); self.fatura_no_entry.delete(0, 'end')
 
-    # YENİ: Invoice History Window
+    # YENİ: Fatura Geçmişi Penceresi
     def gecmis_faturalar_penceresi(self):
         win = ctk.CTkToplevel(self)
-        win.title("Invoice History")
+        win.title("Fatura Geçmişi")
         win.geometry("900x600")
         
         # Arama ve Liste
@@ -167,9 +167,9 @@ class FaturaFrame(ctk.CTkFrame):
             detaylar = self.db.fatura_detaylarini_getir(secili_id)
             
             detay_win = ctk.CTkToplevel(win); detay_win.title(f"Fatura Detayı: {fatura_no}"); detay_win.geometry("600x400")
-            detay_tree = ttk.Treeview(detay_win, columns=("Ürün", "Miktar / m²", "Birim Fiyat", "Toplam"), show="headings"); detay_tree.pack(expand=True, fill="both", padx=10, pady=10)
+            detay_tree = ttk.Treeview(detay_win, columns=("Ürün", "Miktar / m²", "Birim Fiyatı", "Toplam"), show="headings"); detay_tree.pack(expand=True, fill="both", padx=10, pady=10)
             for col in detay_tree['columns']: detay_tree.heading(col, text=col)
-            detay_tree.column("Birim Fiyat", anchor="e"); detay_tree.column("Toplam", anchor="e")
+            detay_tree.column("Birim Fiyatı", anchor="e"); detay_tree.column("Toplam", anchor="e")
             for detay in detaylar: detay_tree.insert("", "end", values=(detay[0], f"{detay[1]:.2f}", f"{detay[2]:.2f} ₺", f"{detay[3]:.2f} ₺"))
             detay_win.transient(win); detay_win.grab_set()
 
@@ -202,7 +202,7 @@ class FaturaFrame(ctk.CTkFrame):
         <p>{fatura[4]}<br>Telefon: {fatura[5] or ''}<br>Email: {fatura[6] or ''}</p>
         <p>Fatura No: {fatura[0]}<br>Tarih: {fatura[1]}<br>Tip: {fatura[2]}</p>
         <table>
-        <tr><th>Ürün</th><th>Miktar</th><th>Birim Fiyat</th><th>Toplam</th></tr>
+        <tr><th>Ürün</th><th>Miktar</th><th>Birim Fiyatı</th><th>Toplam</th></tr>
         {rows}
         </table>
         <p style='text-align:right;'>Toplam: {sum(d[3] for d in detaylar):.2f} ₺</p>
@@ -234,7 +234,7 @@ class FaturaFrame(ctk.CTkFrame):
                     )
                     detaylar = self.db.cursor.fetchall()
                     elems = [Paragraph(f"Fatura {fatura_id}", styles['Title']), Spacer(1, 12)]
-                    data = [["Ürün", "Miktar", "Birim Fiyat", "Toplam"]]
+                    data = [["Ürün", "Miktar", "Birim Fiyatı", "Toplam"]]
                     for d in detaylar:
                         data.append([d[0], f"{d[1]:.2f}", f"{d[2]:.2f}", f"{d[3]:.2f}"])
                     table = Table(data, colWidths=[150, 60, 60, 60])
