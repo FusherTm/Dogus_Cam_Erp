@@ -12,6 +12,8 @@ class FaturaFrame(ctk.CTkFrame):
         self.grid_columnconfigure(0, weight=1); self.grid_rowconfigure(0, weight=1)
         self.arayuzu_kur()
         self.verileri_yukle()
+        if hasattr(self.app, 'event_bus'):
+            self.app.event_bus.subscribe('envanter_guncellendi', self.verileri_yukle)
 
     def arayuzu_kur(self):
         main_frame = ctk.CTkFrame(self); main_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
