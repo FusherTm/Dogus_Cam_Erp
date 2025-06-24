@@ -66,7 +66,7 @@ class MusteriFrame(ctk.CTkFrame):
 
         # GÜNCELLENDİ: Alt kısma yeni sekme eklendi
         alt_tab_view = ctk.CTkTabview(self); alt_tab_view.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-        alt_tab_view.add("Hesap Ekstresi"); alt_tab_view.add("İş Emirleri"); alt_tab_view.add("Temper Siparişleri"); alt_tab_view.add("Previous Invoices")
+        alt_tab_view.add("Hesap Ekstresi"); alt_tab_view.add("İş Emirleri"); alt_tab_view.add("Temper Siparişleri"); alt_tab_view.add("Fatura Geçmişi")
         
         # --- Hesap Ekstresi Sekmesi ---
         hesap_frame = alt_tab_view.tab("Hesap Ekstresi"); hesap_frame.grid_rowconfigure(0, weight=1); hesap_frame.grid_columnconfigure(0, weight=1)
@@ -97,8 +97,8 @@ class MusteriFrame(ctk.CTkFrame):
         self.temper_emri_tree.heading("Durum", text="Durum", anchor="center"); self.temper_emri_tree.column("Durum", width=100, anchor="center")
         self.temper_emri_tree.tag_configure('Bekliyor', background='#636300', foreground='white'); self.temper_emri_tree.tag_configure('Üretimde', background='#005B9A', foreground='white'); self.temper_emri_tree.tag_configure('Hazır', background='#006325', foreground='white')
 
-        # --- Previous Invoices Tab ---
-        invoice_frame = alt_tab_view.tab("Previous Invoices"); invoice_frame.grid_rowconfigure(0, weight=1); invoice_frame.grid_columnconfigure(0, weight=1)
+        # --- Fatura Geçmişi Sekmesi ---
+        invoice_frame = alt_tab_view.tab("Fatura Geçmişi"); invoice_frame.grid_rowconfigure(0, weight=1); invoice_frame.grid_columnconfigure(0, weight=1)
         self.fatura_tree = ttk.Treeview(invoice_frame, columns=("ID", "Tarih", "Fatura No", "Tutar"), show="headings")
         self.fatura_tree.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.fatura_tree.heading("ID", text="ID"); self.fatura_tree.column("ID", width=50)
