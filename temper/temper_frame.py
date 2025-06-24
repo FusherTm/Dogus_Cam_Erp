@@ -84,6 +84,8 @@ class TemperFrame(ctk.CTkFrame):
         musteri_cerceve.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
         musteri_cerceve.grid_columnconfigure(0, weight=1)
         self.yeni_siparis_musteri_entry = ctk.CTkEntry(musteri_cerceve, placeholder_text="Muhtelif (Seçim zorunlu değil)")
+        # show a default value so it's clear a customer selection isn't required
+        self.yeni_siparis_musteri_entry.insert(0, "Muhtelif")
         self.yeni_siparis_musteri_entry.configure(state="disabled")
         self.yeni_siparis_musteri_entry.grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(musteri_cerceve, text="...", width=40, command=lambda: self.cari_sec_penceresi_ac(win)).grid(row=0, column=1, padx=(5,0))
