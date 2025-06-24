@@ -38,7 +38,7 @@ class FaturaFrame(ctk.CTkFrame):
         self.urun_ekle_label = ctk.CTkLabel(urun_ekle_frame, text="Ürün Ekle (Satış)", font=ctk.CTkFont(size=14, weight="bold")); self.urun_ekle_label.grid(row=0, column=0, columnspan=2, pady=5)
         ctk.CTkLabel(urun_ekle_frame, text="Ürün:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.urun_menu = ctk.CTkOptionMenu(urun_ekle_frame, values=["Ürün Seçin"]); self.urun_menu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
-        ctk.CTkLabel(urun_ekle_frame, text="Miktar:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        ctk.CTkLabel(urun_ekle_frame, text="Miktar / m²:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.miktar_entry = ctk.CTkEntry(urun_ekle_frame); self.miktar_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkButton(urun_ekle_frame, text="Faturaya Ekle", command=self.kalem_ekle).grid(row=3, column=0, columnspan=2, pady=10, sticky="ew")
         urun_ekle_frame.grid_columnconfigure(1, weight=1)
@@ -47,7 +47,7 @@ class FaturaFrame(ctk.CTkFrame):
         kalemler_frame = ctk.CTkFrame(main_frame); kalemler_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
         kalemler_frame.grid_rowconfigure(0, weight=1); kalemler_frame.grid_columnconfigure(0, weight=1)
         style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0); style.map('Treeview', background=[('selected', '#22559b')])
-        self.tree = ttk.Treeview(kalemler_frame, columns=("Ürün Adı", "Miktar", "Birim Fiyat", "Toplam"), show="headings"); self.tree.grid(row=0, column=0, sticky="nsew")
+        self.tree = ttk.Treeview(kalemler_frame, columns=("Ürün Adı", "Miktar / m²", "Birim Fiyat", "Toplam"), show="headings"); self.tree.grid(row=0, column=0, sticky="nsew")
         for col in self.tree['columns']: self.tree.heading(col, text=col)
         
         # Alt Buton ve Toplam Alanı
@@ -74,8 +74,8 @@ class FaturaFrame(ctk.CTkFrame):
     def kalem_ekle(self):
         secili_urun_adi = self.urun_menu.get(); miktar_str = self.miktar_entry.get()
         if secili_urun_adi == "Ürün Yok" or not miktar_str: return messagebox.showerror("Hata", "Lütfen bir ürün seçin ve miktar girin.")
-        try: miktar = int(miktar_str); assert miktar > 0
-        except(ValueError, AssertionError): return messagebox.showerror("Hata", "Miktar geçerli bir pozitif tam sayı olmalıdır.")
+        try: miktar = float(miktar_str); assert miktar > 0
+        except(ValueError, AssertionError): return messagebox.showerror("Hata", "Miktar geçerli bir pozitif sayı olmalıdır.")
         urun = next((u for u in self.urunler if u[1] == secili_urun_adi), None)
         if not urun: return
         birim_fiyat = urun[5] if urun[5] is not None else 0
@@ -90,7 +90,7 @@ class FaturaFrame(ctk.CTkFrame):
         for i in self.tree.get_children(): self.tree.delete(i)
         toplam_fatura = 0
         for item in self.fatura_kalemleri:
-            self.tree.insert("", "end", values=(item["urun_adi"], item["miktar"], f'{item["birim_fiyat"]:.2f} ₺', f'{item["toplam"]:.2f} ₺')); toplam_fatura += item["toplam"]
+            self.tree.insert("", "end", values=(item["urun_adi"], f'{item["miktar"]:.2f}', f'{item["birim_fiyat"]:.2f} ₺', f'{item["toplam"]:.2f} ₺')); toplam_fatura += item["toplam"]
         self.toplam_tutar_label.configure(text=f"Toplam Tutar: {toplam_fatura:.2f} ₺")
 
     def faturayi_kaydet(self):
@@ -152,10 +152,10 @@ class FaturaFrame(ctk.CTkFrame):
             detaylar = self.db.fatura_detaylarini_getir(secili_id)
             
             detay_win = ctk.CTkToplevel(win); detay_win.title(f"Fatura Detayı: {fatura_no}"); detay_win.geometry("600x400")
-            detay_tree = ttk.Treeview(detay_win, columns=("Ürün", "Miktar", "Birim Fiyat", "Toplam"), show="headings"); detay_tree.pack(expand=True, fill="both", padx=10, pady=10)
+            detay_tree = ttk.Treeview(detay_win, columns=("Ürün", "Miktar / m²", "Birim Fiyat", "Toplam"), show="headings"); detay_tree.pack(expand=True, fill="both", padx=10, pady=10)
             for col in detay_tree['columns']: detay_tree.heading(col, text=col)
             detay_tree.column("Birim Fiyat", anchor="e"); detay_tree.column("Toplam", anchor="e")
-            for detay in detaylar: detay_tree.insert("", "end", values=(detay[0], detay[1], f"{detay[2]:.2f} ₺", f"{detay[3]:.2f} ₺"))
+            for detay in detaylar: detay_tree.insert("", "end", values=(detay[0], f"{detay[1]:.2f}", f"{detay[2]:.2f} ₺", f"{detay[3]:.2f} ₺"))
             detay_win.transient(win); detay_win.grab_set()
 
         tree.bind("<Double-1>", detay_goster)
