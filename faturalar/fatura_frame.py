@@ -2,6 +2,9 @@ import customtkinter as ctk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from database import Database
+import tempfile
+import os
+import webbrowser
 
 class FaturaFrame(ctk.CTkFrame):
     def __init__(self, parent, app):
@@ -40,7 +43,9 @@ class FaturaFrame(ctk.CTkFrame):
         self.urun_menu = ctk.CTkOptionMenu(urun_ekle_frame, values=["Ürün Seçin"]); self.urun_menu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(urun_ekle_frame, text="Miktar / m²:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.miktar_entry = ctk.CTkEntry(urun_ekle_frame); self.miktar_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-        ctk.CTkButton(urun_ekle_frame, text="Faturaya Ekle", command=self.kalem_ekle).grid(row=3, column=0, columnspan=2, pady=10, sticky="ew")
+        ctk.CTkLabel(urun_ekle_frame, text="Birim Fiyat:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.birim_fiyat_entry = ctk.CTkEntry(urun_ekle_frame); self.birim_fiyat_entry.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(urun_ekle_frame, text="Faturaya Ekle", command=self.kalem_ekle).grid(row=4, column=0, columnspan=2, pady=10, sticky="ew")
         urun_ekle_frame.grid_columnconfigure(1, weight=1)
 
         # Fatura Kalemleri Listesi
@@ -54,8 +59,8 @@ class FaturaFrame(ctk.CTkFrame):
         alt_frame = ctk.CTkFrame(main_frame); alt_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
         alt_frame.grid_columnconfigure(0, weight=1)
         self.toplam_tutar_label = ctk.CTkLabel(alt_frame, text="Toplam Tutar: 0.00 ₺", font=ctk.CTkFont(size=16, weight="bold")); self.toplam_tutar_label.grid(row=0, column=0, padx=10, pady=5, sticky="w")
-        # YENİ: Geçmiş Faturalar Butonu
-        ctk.CTkButton(alt_frame, text="Geçmiş Faturalar", command=self.gecmis_faturalar_penceresi).grid(row=0, column=1, padx=5, pady=5)
+        # YENİ: Invoice History Button
+        ctk.CTkButton(alt_frame, text="Invoice History", command=self.gecmis_faturalar_penceresi).grid(row=0, column=1, padx=5, pady=5)
         ctk.CTkButton(alt_frame, text="Seçili Ürünü Sil", command=self.kalem_sil).grid(row=0, column=2, padx=5, pady=5)
         ctk.CTkButton(alt_frame, text="Faturayı Kaydet", command=self.faturayi_kaydet, height=35).grid(row=0, column=3, padx=5, pady=5)
 
@@ -77,10 +82,12 @@ class FaturaFrame(ctk.CTkFrame):
         try: miktar = float(miktar_str); assert miktar > 0
         except(ValueError, AssertionError): return messagebox.showerror("Hata", "Miktar geçerli bir pozitif sayı olmalıdır.")
         urun = next((u for u in self.urunler if u[1] == secili_urun_adi), None)
-        if not urun: return
-        birim_fiyat = urun[5] if urun[5] is not None else 0
+        if not urun:
+            return
+        fiyat_str = self.birim_fiyat_entry.get()
+        birim_fiyat = float(fiyat_str) if fiyat_str else (urun[5] if urun[5] is not None else 0)
         self.fatura_kalemleri.append({"urun_id": urun[0], "urun_adi": urun[1], "miktar": miktar, "birim_fiyat": birim_fiyat, "toplam": miktar * birim_fiyat})
-        self.kalemleri_guncelle(); self.miktar_entry.delete(0, 'end')
+        self.kalemleri_guncelle(); self.miktar_entry.delete(0, 'end'); self.birim_fiyat_entry.delete(0, 'end')
 
     def kalem_sil(self):
         if not self.tree.selection(): return messagebox.showerror("Hata", "Lütfen silmek için bir ürün seçin.")
@@ -104,20 +111,28 @@ class FaturaFrame(ctk.CTkFrame):
         if fatura_id is None: return messagebox.showerror("Hata", f"'{fatura_no}' numaralı fatura zaten mevcut.")
 
         for item in self.fatura_kalemleri:
-            hareket_tipi = 'Çıkış' if fatura_tipi == 'Satış' else 'Giriş'
-            self.db.fatura_kalemi_ekle(fatura_id, item['urun_id'], item['miktar'], item['birim_fiyat'], item['toplam'])
-            self.db.stok_guncelle(item['urun_id'], item['miktar'], hareket_tipi); self.db.stok_hareketi_ekle(item['urun_id'], hareket_tipi, item['miktar'], fatura_id, f"Fatura No: {fatura_no}")
-
-        if fatura_tipi == 'Satış': self.db.musteri_hesap_hareketi_ekle(musteri[0], tarih, f"Satış Faturası No: {fatura_no}", toplam_tutar, 0, fatura_id)
-        else: self.db.musteri_hesap_hareketi_ekle(musteri[0], tarih, f"Alış Faturası No: {fatura_no}", 0, toplam_tutar, fatura_id)
+            self.db.fatura_kalemi_ekle(
+                fatura_id, item['urun_id'], item['miktar'], item['birim_fiyat'], item['toplam']
+            )
         
-        messagebox.showinfo("Başarılı", "Fatura başarıyla kaydedildi."); self.fatura_kalemleri.clear(); self.kalemleri_guncelle(); self.fatura_no_entry.delete(0, 'end')
-        self.app.envanter_frame.urunleri_goster(); self.app.musteri_frame.musterileri_goster()
+        messagebox.showinfo("Başarılı", "Fatura başarıyla kaydedildi.")
+        html = self._fatura_html_olustur(fatura_id)
+        fd, html_path = tempfile.mkstemp(suffix='.html')
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(html)
+        webbrowser.open_new_tab('file://' + html_path)
+        win = ctk.CTkToplevel(self)
+        win.title("Fatura")
+        win.geometry('350x120')
+        ctk.CTkLabel(win, text="Fatura tarayıcıda açıldı. Yazdırmak için tarayıcıdan Ctrl+P kullanın.", wraplength=320).pack(padx=10, pady=10)
+        ctk.CTkButton(win, text="PDF İndir", command=lambda: self._fatura_pdf_indir(html, fatura_id, win)).pack(pady=5)
+        win.grab_set()
+        self.fatura_kalemleri.clear(); self.kalemleri_guncelle(); self.fatura_no_entry.delete(0, 'end')
 
-    # YENİ: Geçmiş Faturalar Penceresi Fonksiyonu
+    # YENİ: Invoice History Window
     def gecmis_faturalar_penceresi(self):
         win = ctk.CTkToplevel(self)
-        win.title("Geçmiş Faturalar")
+        win.title("Invoice History")
         win.geometry("900x600")
         
         # Arama ve Liste
@@ -161,3 +176,76 @@ class FaturaFrame(ctk.CTkFrame):
         tree.bind("<Double-1>", detay_goster)
         listeyi_doldur()
         win.transient(self); win.grab_set()
+
+    def _fatura_html_olustur(self, fatura_id):
+        self.db.cursor.execute(
+            """SELECT f.fatura_no, f.tarih, f.fatura_tipi, m.firma_adi, m.yetkili_ad_soyad, m.telefon, m.email, m.adres
+               FROM faturalar f LEFT JOIN musteriler m ON f.musteri_id = m.id WHERE f.id = ?""",
+            (fatura_id,),
+        )
+        fatura = self.db.cursor.fetchone()
+        detaylar = self.db.fatura_detaylarini_getir(fatura_id)
+        rows = ""
+        for d in detaylar:
+            rows += f"<tr><td>{d[0]}</td><td class='num'>{d[1]:.2f}</td><td class='num'>{d[2]:.2f}</td><td class='num'>{d[3]:.2f}</td></tr>"
+        html = f"""
+        <html><head><meta charset='utf-8'>
+        <style>
+        body{{font-family:Arial, Helvetica, sans-serif;}}
+        table{{border-collapse:collapse;width:100%;}}
+        th,td{{border:1px solid #ccc;padding:4px;text-align:left;}}
+        th{{background:#eee;}}
+        td.num{{text-align:right;}}
+        </style></head>
+        <body>
+        <h2>{fatura[3]}</h2>
+        <p>{fatura[4]}<br>Telefon: {fatura[5] or ''}<br>Email: {fatura[6] or ''}</p>
+        <p>Fatura No: {fatura[0]}<br>Tarih: {fatura[1]}<br>Tip: {fatura[2]}</p>
+        <table>
+        <tr><th>Ürün</th><th>Miktar</th><th>Birim Fiyat</th><th>Toplam</th></tr>
+        {rows}
+        </table>
+        <p style='text-align:right;'>Toplam: {sum(d[3] for d in detaylar):.2f} ₺</p>
+        </body></html>
+        """
+        return html
+
+    def _fatura_pdf_indir(self, html, fatura_id, parent_win=None):
+        pdf_path = os.path.join(tempfile.gettempdir(), f"fatura_{fatura_id}.pdf")
+        try:
+            import pdfkit
+            pdfkit.from_string(html, pdf_path)
+        except Exception:
+            try:
+                from weasyprint import HTML
+                HTML(string=html).write_pdf(pdf_path)
+            except Exception:
+                try:
+                    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+                    from reportlab.lib.pagesizes import A4
+                    from reportlab.lib import colors
+                    from reportlab.lib.styles import getSampleStyleSheet
+
+                    doc = SimpleDocTemplate(pdf_path, pagesize=A4)
+                    styles = getSampleStyleSheet()
+                    self.db.cursor.execute(
+                        "SELECT urun_adi, miktar, birim_fiyat, toplam FROM fatura_kalemleri JOIN envanter ON fatura_kalemleri.urun_id = envanter.id WHERE fatura_id = ?",
+                        (fatura_id,),
+                    )
+                    detaylar = self.db.cursor.fetchall()
+                    elems = [Paragraph(f"Fatura {fatura_id}", styles['Title']), Spacer(1, 12)]
+                    data = [["Ürün", "Miktar", "Birim Fiyat", "Toplam"]]
+                    for d in detaylar:
+                        data.append([d[0], f"{d[1]:.2f}", f"{d[2]:.2f}", f"{d[3]:.2f}"])
+                    table = Table(data, colWidths=[150, 60, 60, 60])
+                    table.setStyle(TableStyle([
+                        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+                        ('BACKGROUND',(0,0),(-1,0),colors.lightgrey)
+                    ]))
+                    elems.append(table)
+                    doc.build(elems)
+                except Exception:
+                    messagebox.showerror("Hata", "PDF oluşturmak için pdfkit, weasyprint veya reportlab kütüphanelerinden biri gereklidir.", parent=parent_win)
+                    return
+        messagebox.showinfo("PDF Kaydedildi", pdf_path, parent=parent_win)
+        webbrowser.open_new_tab('file://' + pdf_path)

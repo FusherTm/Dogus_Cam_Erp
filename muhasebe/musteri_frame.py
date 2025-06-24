@@ -64,9 +64,9 @@ class MusteriFrame(ctk.CTkFrame):
         self.ekstre_button = ctk.CTkButton(list_frame, text="Hesap Ekstresi", state="disabled", command=self.hesap_ekstresi_goruntule)
         self.ekstre_button.pack(fill="x", padx=10, pady=(0,10))
 
-        # GÜNCELLENDİ: Alt kısma üçüncü sekme eklendi
+        # GÜNCELLENDİ: Alt kısma yeni sekme eklendi
         alt_tab_view = ctk.CTkTabview(self); alt_tab_view.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-        alt_tab_view.add("Hesap Ekstresi"); alt_tab_view.add("İş Emirleri"); alt_tab_view.add("Temper Siparişleri")
+        alt_tab_view.add("Hesap Ekstresi"); alt_tab_view.add("İş Emirleri"); alt_tab_view.add("Temper Siparişleri"); alt_tab_view.add("Previous Invoices")
         
         # --- Hesap Ekstresi Sekmesi ---
         hesap_frame = alt_tab_view.tab("Hesap Ekstresi"); hesap_frame.grid_rowconfigure(0, weight=1); hesap_frame.grid_columnconfigure(0, weight=1)
@@ -96,6 +96,15 @@ class MusteriFrame(ctk.CTkFrame):
         self.temper_emri_tree.heading("Miktar", text="Miktar (m²)", anchor="e"); self.temper_emri_tree.column("Miktar", width=100, anchor="e")
         self.temper_emri_tree.heading("Durum", text="Durum", anchor="center"); self.temper_emri_tree.column("Durum", width=100, anchor="center")
         self.temper_emri_tree.tag_configure('Bekliyor', background='#636300', foreground='white'); self.temper_emri_tree.tag_configure('Üretimde', background='#005B9A', foreground='white'); self.temper_emri_tree.tag_configure('Hazır', background='#006325', foreground='white')
+
+        # --- Previous Invoices Tab ---
+        invoice_frame = alt_tab_view.tab("Previous Invoices"); invoice_frame.grid_rowconfigure(0, weight=1); invoice_frame.grid_columnconfigure(0, weight=1)
+        self.fatura_tree = ttk.Treeview(invoice_frame, columns=("ID", "Tarih", "Fatura No", "Tutar"), show="headings")
+        self.fatura_tree.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        self.fatura_tree.heading("ID", text="ID"); self.fatura_tree.column("ID", width=50)
+        self.fatura_tree.heading("Tarih", text="Tarih"); self.fatura_tree.column("Tarih", width=100)
+        self.fatura_tree.heading("Fatura No", text="Fatura No")
+        self.fatura_tree.heading("Tutar", text="Tutar", anchor="e"); self.fatura_tree.column("Tutar", anchor="e")
 
 
     def musterileri_goster(self, arama_terimi=""):
@@ -139,7 +148,8 @@ class MusteriFrame(ctk.CTkFrame):
             self.adres_entry.insert("1.0", musteri[5])
             self.hesap_hareketlerini_goster(musteri[0])
             self.is_gecmisini_goster(musteri[0])
-            self.temper_gecmisini_goster(musteri[0]) # YENİ
+            self.temper_gecmisini_goster(musteri[0])
+            self.fatura_gecmisini_goster(musteri[0])
             self.ekstre_button.configure(state="normal")
 
     def hesap_hareketlerini_goster(self, musteri_id):
@@ -158,6 +168,14 @@ class MusteriFrame(ctk.CTkFrame):
         for i in self.temper_emri_tree.get_children(): self.temper_emri_tree.delete(i)
         for temper_emri in self.db.temper_emirlerini_getir_by_musteri_id(musteri_id):
             self.temper_emri_tree.insert("", "end", values=temper_emri, tags=(temper_emri[4],))
+
+    def fatura_gecmisini_goster(self, musteri_id):
+        for i in self.fatura_tree.get_children():
+            self.fatura_tree.delete(i)
+        for fatura in self.db.faturalari_getir_by_musteri_id(musteri_id):
+            self.fatura_tree.insert(
+                "", "end", values=(fatura[0], fatura[1], fatura[2], f"{fatura[3]:.2f} ₺")
+            )
 
     # Yeni: seçili müşterinin hesap ekstresini HTML olarak görüntüle
     def hesap_ekstresi_goruntule(self):
@@ -260,7 +278,7 @@ class MusteriFrame(ctk.CTkFrame):
         if clear_selection:
             self.selected_musteri_id = None
             if self.musteri_tree.selection(): self.musteri_tree.selection_remove(self.musteri_tree.selection()[0])
-            for tree in [self.hesap_tree, self.is_emri_tree, self.temper_emri_tree]:
+            for tree in [self.hesap_tree, self.is_emri_tree, self.temper_emri_tree, self.fatura_tree]:
                 for i in tree.get_children(): tree.delete(i)
             self.ekstre_button.configure(state="disabled")
             

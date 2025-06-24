@@ -47,6 +47,13 @@ def db():
     db.cursor.execute(
         "INSERT INTO temper_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?,?,?,?,?,?,?)",
         (1, 'CustC', 'TemSpecial', 5, 100, 'Bekliyor', '2023-01-02'))
+    # invoices
+    f1 = db.fatura_ekle(1, '2023-01-05', 'F001', 'Satış', 100)
+    db.fatura_kalemi_ekle(f1, u1, 10, 10, 100)
+    f2 = db.fatura_ekle(2, '2023-01-10', 'F002', 'Satış', 200)
+    db.fatura_kalemi_ekle(f2, u2, 5, 40, 200)
+    f3 = db.fatura_ekle(1, '2023-01-01', 'F003', 'Satış', 50)
+    db.fatura_kalemi_ekle(f3, u1, 5, 10, 50)
     db.conn.commit()
     return db
 
@@ -73,3 +80,9 @@ def test_stok_hareketlerini_getir(db):
     first_product_id = db.urunleri_getir()[0][0]
     filtered = db.stok_hareketlerini_getir(first_product_id)
     assert all(r[2] == 'GlassA' for r in filtered)
+
+def test_faturalari_getir_by_musteri(db):
+    rows = db.faturalari_getir_by_musteri_id(1)
+    assert _is_sorted_by_date_id(rows)
+    nums = [r[2] for r in rows]
+    assert nums == ['F001', 'F003']
