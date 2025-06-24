@@ -131,3 +131,5 @@ class EnvanterFrame(ctk.CTkFrame):
         self.urunleri_goster(); self.formu_temizle()
         if hasattr(self.app, 'uretim_frame'): self.app.uretim_frame.verileri_yukle()
         if hasattr(self.app, 'fatura_frame'): self.app.fatura_frame.verileri_yukle()
+        if hasattr(self.app, 'event_bus'):
+            self.app.event_bus.publish('envanter_guncellendi')
