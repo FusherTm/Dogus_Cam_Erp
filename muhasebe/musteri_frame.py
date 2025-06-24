@@ -9,9 +9,13 @@ class MusteriFrame(ctk.CTkFrame):
         self.app = app
         self.db = Database()
         self.selected_musteri_id = None
-        
+
         self.arayuzu_kur()
         self.musterileri_goster()
+
+        if hasattr(self.app, 'event_bus'):
+            self.app.event_bus.subscribe('is_emri_guncellendi', self._on_is_emri_guncellendi)
+            self.app.event_bus.subscribe('temper_emri_guncellendi', self._on_temper_emri_guncellendi)
 
     def arayuzu_kur(self):
         self.grid_columnconfigure(0, weight=1)
@@ -161,3 +165,13 @@ class MusteriFrame(ctk.CTkFrame):
         self.musterileri_goster(); self.formu_temizle()
         if hasattr(self.app, 'fatura_frame'): self.app.fatura_frame.verileri_yukle()
         if hasattr(self.app, 'finans_frame'): self.app.finans_frame.yenile()
+
+    def _on_is_emri_guncellendi(self, musteri_id):
+        if str(musteri_id) == str(self.selected_musteri_id):
+            self.is_gecmisini_goster(musteri_id)
+        self.musterileri_goster()
+
+    def _on_temper_emri_guncellendi(self, musteri_id):
+        if str(musteri_id) == str(self.selected_musteri_id):
+            self.temper_gecmisini_goster(musteri_id)
+        self.musterileri_goster()
