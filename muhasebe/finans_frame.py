@@ -51,7 +51,7 @@ class FinansFrame(ctk.CTkFrame):
         ctk.CTkButton(cari_secim_frame, text="...", width=40, command=self.cari_sec_penceresi_ac).grid(row=0, column=1, padx=(5,0))
 
         ctk.CTkButton(form_frame, text="Kaydet", command=self.yeni_finansal_hareket_ekle).grid(row=8, column=0, columnspan=2, pady=10, sticky="ew")
-        self.show_history_button = ctk.CTkButton(form_frame, text="Show Transaction History", command=self.toggle_history_tab)
+        self.show_history_button = ctk.CTkButton(form_frame, text="İşlem Geçmişini Göster", command=self.toggle_history_tab)
         self.show_history_button.grid(row=9, column=0, columnspan=2, pady=(0,10), sticky="ew")
         
     def verileri_yenile(self):
@@ -74,12 +74,12 @@ class FinansFrame(ctk.CTkFrame):
 
     def toggle_history_tab(self):
         if hasattr(self, 'history_tab'):
-            self.tab_view.delete('History')
+            self.tab_view.delete('Geçmiş')
             del self.history_tab
             del self.tree
-            self.show_history_button.configure(text='Show Transaction History')
+            self.show_history_button.configure(text='İşlem Geçmişini Göster')
         else:
-            self.history_tab = self.tab_view.add('History')
+            self.history_tab = self.tab_view.add('Geçmiş')
             self.history_tab.grid_rowconfigure(1, weight=1)
             self.history_tab.grid_columnconfigure(0, weight=1)
             search_entry = ctk.CTkEntry(self.history_tab, placeholder_text='Kategori, cari veya tarih ara...')
@@ -94,8 +94,8 @@ class FinansFrame(ctk.CTkFrame):
             self.tree.configure(yscrollcommand=vsb.set)
             search_entry.bind('<KeyRelease>', lambda e: self.finansal_hareketleri_goster(search_entry.get()))
             self.finansal_hareketleri_goster()
-            self.tab_view.set('History')
-            self.show_history_button.configure(text='Hide Transaction History')
+            self.tab_view.set('Geçmiş')
+            self.show_history_button.configure(text='İşlem Geçmişini Gizle')
         
     def yeni_finansal_hareket_ekle(self):
         tarih = self.tarih_entry.get_date().strftime('%Y-%m-%d'); aciklama = self.aciklama_entry.get()
