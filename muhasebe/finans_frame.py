@@ -22,55 +22,37 @@ class FinansFrame(ctk.CTkFrame):
         self.yenile()
 
     def arayuzu_kur(self):
-        main_container = ctk.CTkFrame(self)
-        main_container.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-        main_container.grid_columnconfigure(1, weight=3); main_container.grid_columnconfigure(0, weight=1)
-        main_container.grid_rowconfigure(0, weight=1)
+        self.tab_view = ctk.CTkTabview(self)
+        self.tab_view.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        self.tab_view.add("Yeni İşlem")
+        form_frame = self.tab_view.tab("Yeni İşlem")
+        form_frame.grid_columnconfigure(1, weight=1)
 
-        sol_sutun = ctk.CTkFrame(main_container, fg_color="transparent")
-        sol_sutun.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
-        sol_sutun.grid_rowconfigure(1, weight=1)
-        
-        liste_container = ctk.CTkFrame(main_container)
-        liste_container.grid(row=0, column=1, sticky="nsew")
-        liste_container.grid_rowconfigure(1, weight=1)
-        liste_container.grid_columnconfigure(0, weight=1)
-
-        # Form
-        form_frame = ctk.CTkFrame(sol_sutun); form_frame.pack(pady=0, padx=0, fill="x")
         ctk.CTkLabel(form_frame, text="Yeni Finansal Hareket", font=ctk.CTkFont(size=14, weight="bold")).grid(row=0, column=0, columnspan=2, pady=10)
         ctk.CTkLabel(form_frame, text="Tarih:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.tarih_entry = DateEntry(form_frame, date_pattern='y-mm-dd'); self.tarih_entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(form_frame, text="Açıklama:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.aciklama_entry = ctk.CTkEntry(form_frame, placeholder_text="İşlem açıklaması"); self.aciklama_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-        ctk.CTkLabel(form_frame, text="Miktar:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
-        self.miktar_entry = ctk.CTkEntry(form_frame, placeholder_text="Örn: 150.50"); self.miktar_entry.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+        ctk.CTkLabel(form_frame, text="Fiyat:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.fiyat_entry = ctk.CTkEntry(form_frame, placeholder_text="Örn: 150.00"); self.fiyat_entry.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(form_frame, text="İşlem Tipi:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
         self.tip_menu = ctk.CTkOptionMenu(form_frame, values=['Gelir', 'Gider']); self.tip_menu.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(form_frame, text="Kategori:").grid(row=5, column=0, padx=5, pady=5, sticky="w")
         self.kategori_menu = ctk.CTkOptionMenu(form_frame, values=["Kategori Yok"]); self.kategori_menu.grid(row=5, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(form_frame, text="Hesap:").grid(row=6, column=0, padx=5, pady=5, sticky="w")
         self.hesap_menu = ctk.CTkOptionMenu(form_frame, values=["Hesap Yok"]); self.hesap_menu.grid(row=6, column=1, padx=5, pady=5, sticky="ew")
-        
-        # YENİ: İlişkili Cari Seçim Alanı
+
         ctk.CTkLabel(form_frame, text="İlişkili Cari:").grid(row=7, column=0, padx=5, pady=5, sticky="w")
-        cari_secim_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        cari_secim_frame.grid(row=7, column=1, padx=5, pady=5, sticky="ew")
+        cari_secim_frame = ctk.CTkFrame(form_frame, fg_color="transparent"); cari_secim_frame.grid(row=7, column=1, padx=5, pady=5, sticky="ew")
         cari_secim_frame.grid_columnconfigure(0, weight=1)
         self.musteri_entry = ctk.CTkEntry(cari_secim_frame, placeholder_text="Cari seçmek için butonu kullanın ->")
-        self.musteri_entry.configure(state="disabled") # Manuel girişi engelle
+        self.musteri_entry.configure(state="disabled")
         self.musteri_entry.grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(cari_secim_frame, text="...", width=40, command=self.cari_sec_penceresi_ac).grid(row=0, column=1, padx=(5,0))
-        
-        ctk.CTkButton(form_frame, text="Kaydet", command=self.yeni_finansal_hareket_ekle).grid(row=8, column=0, columnspan=2, pady=10, sticky="ew")
-        form_frame.grid_columnconfigure(1, weight=1)
 
-        # Liste
-        ctk.CTkLabel(liste_container, text="Son Finansal Hareketler", font=ctk.CTkFont(size=14, weight="bold")).grid(row=0, column=0, pady=10)
-        tree_frame = ctk.CTkFrame(liste_container, fg_color="transparent"); tree_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
-        tree_frame.grid_rowconfigure(0, weight=1); tree_frame.grid_columnconfigure(0, weight=1)
-        style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0); style.map('Treeview', background=[('selected', '#22559b')])
-        self.tree = ttk.Treeview(tree_frame, show='headings'); self.tree.grid(row=0, column=0, sticky="nsew")
+        ctk.CTkButton(form_frame, text="Kaydet", command=self.yeni_finansal_hareket_ekle).grid(row=8, column=0, columnspan=2, pady=10, sticky="ew")
+        self.show_history_button = ctk.CTkButton(form_frame, text="Show Transaction History", command=self.toggle_history_tab)
+        self.show_history_button.grid(row=9, column=0, columnspan=2, pady=(0,10), sticky="ew")
         
     def verileri_yenile(self):
         self.kategoriler = self.db.kategorileri_getir()
@@ -89,15 +71,43 @@ class FinansFrame(ctk.CTkFrame):
         self.hesap_menu.configure(values=hesap_degerleri)
         if self.hesaplar: self.hesap_menu.set(hesap_degerleri[0])
         else: self.hesap_menu.set("Hesap Bulunamadı")
+
+    def toggle_history_tab(self):
+        if hasattr(self, 'history_tab'):
+            self.tab_view.delete('History')
+            del self.history_tab
+            del self.tree
+            self.show_history_button.configure(text='Show Transaction History')
+        else:
+            self.history_tab = self.tab_view.add('History')
+            self.history_tab.grid_rowconfigure(1, weight=1)
+            self.history_tab.grid_columnconfigure(0, weight=1)
+            search_entry = ctk.CTkEntry(self.history_tab, placeholder_text='Kategori, cari veya tarih ara...')
+            search_entry.grid(row=0, column=0, padx=5, pady=5, sticky='ew')
+            tree_frame = ctk.CTkFrame(self.history_tab, fg_color='transparent')
+            tree_frame.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
+            tree_frame.grid_rowconfigure(0, weight=1); tree_frame.grid_columnconfigure(0, weight=1)
+            style = ttk.Style(); style.configure('Treeview', background='#2a2d2e', foreground='white', fieldbackground='#343638', borderwidth=0); style.map('Treeview', background=[('selected', '#22559b')])
+            self.tree = ttk.Treeview(tree_frame, show='headings')
+            self.tree.grid(row=0, column=0, sticky='nsew')
+            vsb = ttk.Scrollbar(tree_frame, orient='vertical', command=self.tree.yview); vsb.grid(row=0, column=1, sticky='ns')
+            self.tree.configure(yscrollcommand=vsb.set)
+            search_entry.bind('<KeyRelease>', lambda e: self.finansal_hareketleri_goster(search_entry.get()))
+            self.finansal_hareketleri_goster()
+            self.tab_view.set('History')
+            self.show_history_button.configure(text='Hide Transaction History')
         
     def yeni_finansal_hareket_ekle(self):
         tarih = self.tarih_entry.get_date().strftime('%Y-%m-%d'); aciklama = self.aciklama_entry.get()
-        miktar_str = self.miktar_entry.get().replace(',', '.'); tip = self.tip_menu.get()
+        fiyat_str = self.fiyat_entry.get().replace(',', '.'); tip = self.tip_menu.get()
         secilen_kategori_ad = self.kategori_menu.get(); secilen_hesap_ad = self.hesap_menu.get()
 
-        if not all([aciklama, miktar_str]): return messagebox.showerror("Hata", "Açıklama ve Miktar zorunludur.")
-        try: miktar = float(miktar_str)
-        except ValueError: return messagebox.showerror("Hata", "Geçerli bir miktar girin.")
+        if not fiyat_str:
+            return messagebox.showerror("Hata", "Fiyat alanı zorunludur.")
+        try:
+            miktar = float(fiyat_str)
+        except ValueError:
+            return messagebox.showerror("Hata", "Geçerli bir fiyat girin.")
         if secilen_kategori_ad in ["Kategori Seçin", "Kategori Yok"]: return messagebox.showerror("Hata", "Kategori seçin.")
         if secilen_hesap_ad in ["Hesap Bulunamadı", "Hesap Yok"]: return messagebox.showerror("Hata", "Hesap seçin.")
         
@@ -111,7 +121,7 @@ class FinansFrame(ctk.CTkFrame):
         messagebox.showinfo("Başarılı", "Finansal hareket eklendi.")
         
         # Formu ve seçimi sıfırla
-        self.aciklama_entry.delete(0, 'end'); self.miktar_entry.delete(0, 'end'); self.musteri_entry.configure(state="normal"); self.musteri_entry.delete(0, 'end'); self.musteri_entry.configure(state="disabled"); self.secili_musteri_id = None
+        self.aciklama_entry.delete(0, 'end'); self.fiyat_entry.delete(0, 'end'); self.musteri_entry.configure(state="normal"); self.musteri_entry.delete(0, 'end'); self.musteri_entry.configure(state="disabled"); self.secili_musteri_id = None
         
         self.yenile()
         if hasattr(self.app, 'kasa_banka_frame'): self.app.kasa_banka_frame.hesaplari_goster()
@@ -119,17 +129,26 @@ class FinansFrame(ctk.CTkFrame):
             self.app.musteri_frame.musterileri_goster()
             self.app.musteri_frame.hesap_hareketlerini_goster(self.secili_musteri_id)
         
-    def finansal_hareketleri_goster(self):
-        for i in self.tree.get_children(): self.tree.delete(i)
-        
-        self.tree['columns'] = ("Tarih", "Açıklama", "Gelir", "Gider", "Kategori", "Hesap", "İlişkili Cari")
-        for col in self.tree['columns']: self.tree.heading(col, text=col)
-        self.tree.column("Gelir", anchor="e"); self.tree.column("Gider", anchor="e")
+    def finansal_hareketleri_goster(self, filtre=""):
+        if not hasattr(self, "tree"):
+            return
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+
+        self.tree['columns'] = ("Tarih", "Açıklama", "Fiyat", "Tip", "Kategori", "Hesap", "Cari")
+        for col in self.tree['columns']:
+            self.tree.heading(col, text=col)
+        self.tree.column("Fiyat", anchor="e", width=80)
+        self.tree.column("Tip", width=60)
         self.tree.column("#0", width=0, stretch="NO")
 
         for kayit in self.db.finansal_hareketleri_getir():
-            gelir_str = f"{kayit[3]:.2f} ₺" if kayit[3] and kayit[3] > 0 else ""; gider_str = f"{kayit[4]:.2f} ₺" if kayit[4] and kayit[4] > 0 else ""
-            self.tree.insert("", "end", values=(kayit[1], kayit[2], gelir_str, gider_str, kayit[5] or "", kayit[6] or "", kayit[7] or ""))
+            tip = 'Gelir' if kayit[3] and kayit[3] > 0 else 'Gider'
+            fiyat = kayit[3] if tip == 'Gelir' else kayit[4]
+            row = (kayit[1], kayit[2], f"{fiyat:.2f} ₺", tip, kayit[5] or "", kayit[6] or "", kayit[7] or "")
+            if filtre and filtre.lower() not in ' '.join(str(x).lower() for x in row):
+                continue
+            self.tree.insert("", "end", values=row)
 
     def cari_sec_penceresi_ac(self):
         win = ctk.CTkToplevel(self)
