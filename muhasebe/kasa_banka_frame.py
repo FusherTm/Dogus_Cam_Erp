@@ -45,12 +45,19 @@ class KasaBankaFrame(ctk.CTkFrame):
         style.map('Treeview', background=[('selected', '#22559b')])
         style.configure("Treeview.Heading", background="#565b5e", foreground="white", relief="flat")
         
-        self.tree = ttk.Treeview(list_frame, columns=("ID", "Hesap Adı", "Tip", "Bakiye"), show="headings")
+        self.tree = ttk.Treeview(
+            list_frame,
+            columns=("No", "Account Name", "Account Type", "Balance"),
+            show="headings",
+        )
         self.tree.pack(side="left", expand=True, fill="both")
-        self.tree.heading("ID", text="ID"); self.tree.column("ID", width=50)
-        self.tree.heading("Hesap Adı", text="Hesap Adı")
-        self.tree.heading("Tip", text="Tip"); self.tree.column("Tip", width=100)
-        self.tree.heading("Bakiye", text="Bakiye", anchor="e"); self.tree.column("Bakiye", width=150, anchor="e")
+        self.tree.heading("No", text="No")
+        self.tree.column("No", width=50)
+        self.tree.heading("Account Name", text="Account Name")
+        self.tree.heading("Account Type", text="Account Type")
+        self.tree.column("Account Type", width=100)
+        self.tree.heading("Balance", text="Balance", anchor="e")
+        self.tree.column("Balance", width=150, anchor="e")
         
         vsb = ttk.Scrollbar(list_frame, orient="vertical", command=self.tree.yview)
         vsb.pack(side='right', fill='y')
