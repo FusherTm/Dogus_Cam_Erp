@@ -42,17 +42,29 @@ class FinansFrame(ctk.CTkFrame):
         ctk.CTkLabel(form_frame, text="Hesap:").grid(row=6, column=0, padx=5, pady=5, sticky="w")
         self.hesap_menu = ctk.CTkOptionMenu(form_frame, values=["Hesap Yok"]); self.hesap_menu.grid(row=6, column=1, padx=5, pady=5, sticky="ew")
 
-        ctk.CTkLabel(form_frame, text="İlişkili Cari:").grid(row=7, column=0, padx=5, pady=5, sticky="w")
-        cari_secim_frame = ctk.CTkFrame(form_frame, fg_color="transparent"); cari_secim_frame.grid(row=7, column=1, padx=5, pady=5, sticky="ew")
+        ctk.CTkLabel(form_frame, text="Ödeme Yöntemi:").grid(row=7, column=0, padx=5, pady=5, sticky="w")
+        self.odeme_menu = ctk.CTkOptionMenu(form_frame, values=[
+            "Nakit",
+            "Kredi Kartı",
+            "Havale / EFT",
+            "Çek",
+            "Senet",
+            "Diğer",
+        ])
+        self.odeme_menu.set("Nakit")
+        self.odeme_menu.grid(row=7, column=1, padx=5, pady=5, sticky="ew")
+
+        ctk.CTkLabel(form_frame, text="İlişkili Cari:").grid(row=8, column=0, padx=5, pady=5, sticky="w")
+        cari_secim_frame = ctk.CTkFrame(form_frame, fg_color="transparent"); cari_secim_frame.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
         cari_secim_frame.grid_columnconfigure(0, weight=1)
         self.musteri_entry = ctk.CTkEntry(cari_secim_frame, placeholder_text="Cari seçmek için butonu kullanın ->")
         self.musteri_entry.configure(state="disabled")
         self.musteri_entry.grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(cari_secim_frame, text="...", width=40, command=self.cari_sec_penceresi_ac).grid(row=0, column=1, padx=(5,0))
 
-        ctk.CTkButton(form_frame, text="Kaydet", command=self.yeni_finansal_hareket_ekle).grid(row=8, column=0, columnspan=2, pady=10, sticky="ew")
+        ctk.CTkButton(form_frame, text="Kaydet", command=self.yeni_finansal_hareket_ekle).grid(row=9, column=0, columnspan=2, pady=10, sticky="ew")
         self.show_history_button = ctk.CTkButton(form_frame, text="İşlem Geçmişini Göster", command=self.toggle_history_tab)
-        self.show_history_button.grid(row=9, column=0, columnspan=2, pady=(0,10), sticky="ew")
+        self.show_history_button.grid(row=10, column=0, columnspan=2, pady=(0,10), sticky="ew")
         
     def verileri_yenile(self):
         self.kategoriler = self.db.kategorileri_getir()
@@ -110,7 +122,7 @@ class FinansFrame(ctk.CTkFrame):
     def yeni_finansal_hareket_ekle(self):
         tarih = self.tarih_entry.get_date().strftime('%Y-%m-%d'); aciklama = self.aciklama_entry.get()
         fiyat_str = self.fiyat_entry.get().replace(',', '.'); tip = self.tip_menu.get()
-        secilen_kategori_ad = self.kategori_menu.get(); secilen_hesap_ad = self.hesap_menu.get()
+        secilen_kategori_ad = self.kategori_menu.get(); secilen_hesap_ad = self.hesap_menu.get(); odeme_yontemi = self.odeme_menu.get()
 
         if not fiyat_str:
             return messagebox.showerror("Hata", "Fiyat alanı zorunludur.")
@@ -127,7 +139,7 @@ class FinansFrame(ctk.CTkFrame):
         gelir = miktar if tip == 'Gelir' else 0
         gider = miktar if tip == 'Gider' else 0
 
-        self.db.finansal_hareket_ekle(tarih, aciklama, gelir, gider, kategori_id, hesap_id, self.secili_musteri_id)
+        self.db.finansal_hareket_ekle(tarih, aciklama, gelir, gider, kategori_id, hesap_id, self.secili_musteri_id, odeme_yontemi)
         messagebox.showinfo("Başarılı", "Finansal hareket eklendi.")
         
         # Formu ve seçimi sıfırla
@@ -145,17 +157,18 @@ class FinansFrame(ctk.CTkFrame):
         for i in self.tree.get_children():
             self.tree.delete(i)
 
-        self.tree['columns'] = ("Tarih", "Açıklama", "Fiyat", "Tip", "Kategori", "Hesap", "Cari")
+        self.tree['columns'] = ("Tarih", "Açıklama", "Fiyat", "Tip", "Kategori", "Hesap", "Cari", "Ödeme Yöntemi")
         for col in self.tree['columns']:
             self.tree.heading(col, text=col)
         self.tree.column("Fiyat", anchor="e", width=80)
         self.tree.column("Tip", width=60)
+        self.tree.column("Ödeme Yöntemi", width=110)
         self.tree.column("#0", width=0, stretch="NO")
 
         for kayit in self.db.finansal_hareketleri_getir():
             tip = 'Gelir' if kayit[3] and kayit[3] > 0 else 'Gider'
             fiyat = kayit[3] if tip == 'Gelir' else kayit[4]
-            row = (kayit[1], kayit[2], f"{fiyat:.2f} ₺", tip, kayit[5] or "", kayit[6] or "", kayit[7] or "")
+            row = (kayit[1], kayit[2], f"{fiyat:.2f} ₺", tip, kayit[5] or "", kayit[6] or "", kayit[7] or "", kayit[8] or "")
             if filtre and filtre.lower() not in ' '.join(str(x).lower() for x in row):
                 continue
             self.tree.insert("", "end", values=row)
