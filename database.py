@@ -56,7 +56,7 @@ class Database:
         c.execute('''CREATE TABLE IF NOT EXISTS finansal_hareketler (
                         id INTEGER PRIMARY KEY, tarih TEXT NOT NULL, aciklama TEXT,
                         gelir REAL, gider REAL, kategori_id INTEGER, hesap_id INTEGER,
-                        musteri_id INTEGER,
+                        musteri_id INTEGER, odeme_yontemi TEXT DEFAULT 'Nakit',
                         FOREIGN KEY (kategori_id) REFERENCES kategoriler (id) ON DELETE SET NULL,
                         FOREIGN KEY (hesap_id) REFERENCES kasa_banka (id) ON DELETE SET NULL,
                         FOREIGN KEY (musteri_id) REFERENCES musteriler (id) ON DELETE SET NULL
@@ -138,7 +138,8 @@ class Database:
         # Ensure new columns exist when database was created with older schema
         for table, cols in {
             'is_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
-            'temper_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')]
+            'temper_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
+            'finansal_hareketler': [('odeme_yontemi', "TEXT DEFAULT 'Nakit'")]
         }.items():
             self.cursor.execute(f"PRAGMA table_info({table})")
             existing = [row[1] for row in self.cursor.fetchall()]
@@ -289,15 +290,15 @@ class Database:
         self.conn.commit()
 
     # --- FİNANSAL HAREKETLER ---
-    def finansal_hareket_ekle(self, tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id=None):
-        self.cursor.execute('''INSERT INTO finansal_hareketler (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id) VALUES (?, ?, ?, ?, ?, ?, ?)''', (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id)); self.conn.commit()
+    def finansal_hareket_ekle(self, tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id=None, odeme_yontemi="Nakit"):
+        self.cursor.execute('''INSERT INTO finansal_hareketler (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi)); self.conn.commit()
         if gelir > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye + ? WHERE id = ?", (gelir, hesap_id))
         elif gider > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye - ? WHERE id = ?", (gider, hesap_id))
         self.conn.commit()
         if gelir > 0 and musteri_id is not None: self.musteri_hesap_hareketi_ekle(musteri_id=musteri_id, tarih=tarih, aciklama=f"Tahsilat: {aciklama}", borc=0, alacak=gelir)
         
     def finansal_hareketleri_getir(self):
-        self.cursor.execute("SELECT f.id, f.tarih, f.aciklama, f.gelir, f.gider, k.ad, kb.hesap_adi, m.firma_adi FROM finansal_hareketler f LEFT JOIN kategoriler k ON f.kategori_id = k.id LEFT JOIN kasa_banka kb ON f.hesap_id = kb.id LEFT JOIN musteriler m ON f.musteri_id = m.id ORDER BY f.tarih DESC, f.id DESC"); return self.cursor.fetchall()
+        self.cursor.execute("SELECT f.id, f.tarih, f.aciklama, f.gelir, f.gider, k.ad, kb.hesap_adi, m.firma_adi, f.odeme_yontemi FROM finansal_hareketler f LEFT JOIN kategoriler k ON f.kategori_id = k.id LEFT JOIN kasa_banka kb ON f.hesap_id = kb.id LEFT JOIN musteriler m ON f.musteri_id = m.id ORDER BY f.tarih DESC, f.id DESC"); return self.cursor.fetchall()
         
     def hesap_hareketlerini_getir(self, hesap_id):
         self.cursor.execute("SELECT tarih, aciklama, gelir, gider FROM finansal_hareketler WHERE hesap_id = ? ORDER BY tarih DESC, id DESC", (hesap_id,)); return self.cursor.fetchall()
