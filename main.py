@@ -34,6 +34,7 @@ class App(ctk.CTk):
 
         # Global Treeview header style
         style = ttk.Style()
+        style.theme_use("clam")
         style.configure(
             "Treeview.Heading",
             background="#1E1E2F",

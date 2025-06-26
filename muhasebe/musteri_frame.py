@@ -52,7 +52,7 @@ class MusteriFrame(ctk.CTkFrame):
         self.arama_entry = ctk.CTkEntry(list_frame, placeholder_text="Firma ara..."); self.arama_entry.pack(fill="x", padx=10, pady=5)
         self.arama_entry.bind("<KeyRelease>", self.arama_yap)
         
-        style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
+        style = ttk.Style(); style.theme_use("clam"); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map('Treeview', background=[('selected', '#22559b')])
         style.configure(
             "Treeview.Heading",

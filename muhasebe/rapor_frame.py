@@ -90,6 +90,7 @@ class RaporFrame(ctk.CTkFrame):
         sag_frame.grid_rowconfigure(0, weight=1); sag_frame.grid_columnconfigure(0, weight=1)
         
         style = ttk.Style()
+        style.theme_use("clam")
         style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.configure(
             "Treeview.Heading",

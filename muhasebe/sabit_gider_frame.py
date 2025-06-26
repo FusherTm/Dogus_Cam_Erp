@@ -64,6 +64,7 @@ class SabitGiderFrame(ctk.CTkFrame):
 
         # --- SABİT GİDERLER LİSTESİ ---
         style = ttk.Style()
+        style.theme_use("clam")
         style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map('Treeview', background=[('selected', '#22559b')])
         style.configure(
