@@ -98,6 +98,14 @@ def test_is_emri_getir_by_id_order(db):
     row = db.is_emri_getir_by_id(is_id)
     assert row[2] == 'ClientZ'
     assert row[3] == 'Desc'
+    assert row[8] is None
+
+def test_is_emri_liste_dosyasi(db):
+    is_id = db.is_emri_ekle(1, 'FileM', 'Desc', 2, 20, '2023-01-06')
+    db.is_emri_liste_dosyasi_guncelle(is_id, '/tmp/file.pdf')
+    assert db.is_emri_liste_dosyasi_getir(is_id) == '/tmp/file.pdf'
+    row = db.is_emri_getir_by_id(is_id)
+    assert row[8] == '/tmp/file.pdf'
 
 def test_varliklar_crud(db):
     db.cek_ekle('C1', 'Bank', 'Sube', 100.0, '2023-01-10', 'Kes', 'Portföyde', '', '')

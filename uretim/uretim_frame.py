@@ -1,5 +1,8 @@
 import customtkinter as ctk
-from tkinter import ttk, messagebox, Menu
+from tkinter import ttk, messagebox, Menu, filedialog
+import os
+import shutil
+import webbrowser
 from tkcalendar import DateEntry
 from database import Database
 
@@ -9,6 +12,8 @@ class UretimFrame(ctk.CTkFrame):
         self.app = app
         self.db = Database()
         self.secili_musteri_id_yeni_is_emri = None
+        self.upload_dir = os.path.join(os.path.dirname(__file__), "uploaded_lists")
+        os.makedirs(self.upload_dir, exist_ok=True)
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -83,7 +88,7 @@ class UretimFrame(ctk.CTkFrame):
         for is_emri in self.db.is_emirlerini_getir(arama_terimi):
             # GÜNCELLENDİ: Firma adı yoksa "Muhtelif Müşteri" yaz
             firma_adi = is_emri[2] if is_emri[2] else "Muhtelif Müşteri"
-            liste_var = self.db.cam_listesi_var_mi(is_emri[0])
+            liste_var = self.db.cam_listesi_var_mi(is_emri[0]) or self.db.is_emri_liste_dosyasi_getir(is_emri[0])
             btn_text = "Listeyi Gör" if liste_var else ""
             gosterilecek_degerler = (
                 is_emri[0],
@@ -99,6 +104,7 @@ class UretimFrame(ctk.CTkFrame):
     def yeni_is_emri_penceresi_ac(self):
         self.secili_musteri_id_yeni_is_emri = None
         self.cam_listesi_temp = []
+        self.yuklenen_liste_path = None
 
         win = ctk.CTkToplevel(self)
         win.title("Yeni İş Emri")
@@ -134,6 +140,11 @@ class UretimFrame(ctk.CTkFrame):
         ctk.CTkLabel(win, text="Fiyat:").grid(row=5, column=0, padx=10, pady=10, sticky="w")
         self.is_emri_fiyat_entry = ctk.CTkEntry(win)
         self.is_emri_fiyat_entry.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
+
+        def dosya_sec():
+            path = filedialog.askopenfilename(filetypes=[("Liste", "*.pdf *.jpg *.jpeg *.png")])
+            if path:
+                self.yuklenen_liste_path = path
 
         def cam_listesi_penceresi_ac():
             self.cam_listesi_temp = []
@@ -242,6 +253,11 @@ class UretimFrame(ctk.CTkFrame):
             is_id = self.db.is_emri_ekle(self.secili_musteri_id_yeni_is_emri, firma_must, nitelik, miktar, fiyat, tarih)
             for en, boy, m2, poz in self.cam_listesi_temp:
                 self.db.cam_listesi_ekle(is_id, en, boy, m2, poz)
+            if self.yuklenen_liste_path:
+                ext = os.path.splitext(self.yuklenen_liste_path)[1]
+                dest = os.path.join(self.upload_dir, f"isemri_{is_id}_liste{ext}")
+                shutil.copy(self.yuklenen_liste_path, dest)
+                self.db.is_emri_liste_dosyasi_guncelle(is_id, dest)
             if self.secili_musteri_id_yeni_is_emri:
                 self.db.musteri_hesap_hareketi_ekle(self.secili_musteri_id_yeni_is_emri, tarih, f"İş Emri: {nitelik}", fiyat, 0)
             messagebox.showinfo("Başarılı", "İş emri başarıyla eklendi.")
@@ -253,7 +269,8 @@ class UretimFrame(ctk.CTkFrame):
             win.destroy()
 
         ctk.CTkButton(win, text="Liste Ekle", command=cam_listesi_penceresi_ac).grid(row=6, column=0, padx=10, pady=10, sticky="w")
-        ctk.CTkButton(win, text="Kaydet", command=kaydet, height=35).grid(row=7, column=1, padx=10, pady=20, sticky="e")
+        ctk.CTkButton(win, text="PDF / Resim Liste Yükle", command=dosya_sec).grid(row=7, column=0, padx=10, pady=5, sticky="w")
+        ctk.CTkButton(win, text="Kaydet", command=kaydet, height=35).grid(row=8, column=1, padx=10, pady=20, sticky="e")
         win.grid_columnconfigure(1, weight=1)
         win.transient(self); win.grab_set()
 
@@ -307,8 +324,15 @@ class UretimFrame(ctk.CTkFrame):
 
     def _cam_listesi_penceresi_ac(self, is_emri_id):
         liste = self.db.cam_listesini_getir(is_emri_id)
-        if not liste:
+        dosya = self.db.is_emri_liste_dosyasi_getir(is_emri_id)
+        if not liste and not dosya:
             messagebox.showinfo("Bilgi", "Bu iş emrine ait cam listesi bulunamadı.")
+            return
+        if dosya and not liste:
+            if os.path.isfile(dosya):
+                webbrowser.open_new_tab('file://' + os.path.abspath(dosya))
+            else:
+                messagebox.showerror("Hata", "Dosya bulunamadı.")
             return
 
         is_emri = self.db.is_emri_getir_by_id(is_emri_id)
@@ -352,6 +376,9 @@ class UretimFrame(ctk.CTkFrame):
         for idx, (en, boy, _m2, poz) in enumerate(liste, start=1):
             m2_val = en * boy / 10000
             tree.insert("", "end", values=(idx, en, boy, f"{m2_val:.2f}", poz))
+
+        if dosya:
+            ctk.CTkButton(win, text="Yüklenen Dosyayı Aç", command=lambda: webbrowser.open_new_tab('file://' + os.path.abspath(dosya))).pack(pady=5)
 
         win.transient(self)
         win.grab_set()

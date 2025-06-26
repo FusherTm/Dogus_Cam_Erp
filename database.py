@@ -74,6 +74,7 @@ class Database:
                         fiyat REAL,
                         durum TEXT,
                         tarih TEXT,
+                        liste_dosyasi TEXT,
                         FOREIGN KEY (musteri_id) REFERENCES musteriler(id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS temper_emirleri (
@@ -137,7 +138,7 @@ class Database:
 
         # Ensure new columns exist when database was created with older schema
         for table, cols in {
-            'is_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
+            'is_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL'), ('liste_dosyasi', 'TEXT')],
             'temper_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
             'finansal_hareketler': [('odeme_yontemi', "TEXT DEFAULT 'Nakit'")]
         }.items():
@@ -328,7 +329,7 @@ class Database:
     def is_emri_durum_guncelle(self, is_emri_id, yeni_durum): self.cursor.execute("UPDATE is_emirleri SET durum = ? WHERE id = ?", (yeni_durum, is_emri_id)); self.conn.commit()
     def is_emri_getir_by_id(self, is_emri_id):
         self.cursor.execute(
-            "SELECT id, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih "
+            "SELECT id, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih, liste_dosyasi "
             "FROM is_emirleri WHERE id = ?",
             (is_emri_id,),
         )
@@ -356,6 +357,21 @@ class Database:
             (is_emri_id,),
         )
         return self.cursor.fetchone() is not None
+
+    def is_emri_liste_dosyasi_getir(self, is_emri_id):
+        self.cursor.execute(
+            "SELECT liste_dosyasi FROM is_emirleri WHERE id = ?",
+            (is_emri_id,),
+        )
+        row = self.cursor.fetchone()
+        return row[0] if row else None
+
+    def is_emri_liste_dosyasi_guncelle(self, is_emri_id, path):
+        self.cursor.execute(
+            "UPDATE is_emirleri SET liste_dosyasi = ? WHERE id = ?",
+            (path, is_emri_id),
+        )
+        self.conn.commit()
 
     # --- VARLIKLAR ---
     def cek_ekle(self, cek_no, banka_adi, sube, tutar, vade_tarihi, kesideci, durum, aciklama, dosya_path):
