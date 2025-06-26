@@ -66,6 +66,7 @@ class SabitGiderFrame(ctk.CTkFrame):
         style = ttk.Style()
         style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map('Treeview', background=[('selected', '#22559b')])
+        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
         self.tree = ttk.Treeview(sag_sutun, columns=("ID", "Gider Adı", "Tutar", "Kategori"), show="headings")
         self.tree.pack(expand=True, fill="both", padx=10, pady=10)
         self.tree.heading("ID", text="ID"); self.tree.column("ID", width=50)

@@ -54,6 +54,7 @@ class MusteriFrame(ctk.CTkFrame):
         
         style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map('Treeview', background=[('selected', '#22559b')])
+        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
         self.musteri_tree = ttk.Treeview(list_frame, columns=("ID", "Firma Adı", "Yetkili", "Bakiye"), show="headings"); self.musteri_tree.pack(expand=True, fill="both", padx=10, pady=10)
         # "ID" sütun başlığını kullanıcı arayüzünde "No" olarak göster
         self.musteri_tree.heading("ID", text="No"); self.musteri_tree.column("ID", width=50)

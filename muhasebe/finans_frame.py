@@ -87,7 +87,7 @@ class FinansFrame(ctk.CTkFrame):
             tree_frame = ctk.CTkFrame(self.history_tab, fg_color='transparent')
             tree_frame.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
             tree_frame.grid_rowconfigure(0, weight=1); tree_frame.grid_columnconfigure(0, weight=1)
-            style = ttk.Style(); style.configure('Treeview', background='#2a2d2e', foreground='white', fieldbackground='#343638', borderwidth=0); style.map('Treeview', background=[('selected', '#22559b')])
+            style = ttk.Style(); style.configure('Treeview', background='#2a2d2e', foreground='white', fieldbackground='#343638', borderwidth=0); style.map('Treeview', background=[('selected', '#22559b')]); style.configure('Treeview.Heading', background='#333333', foreground='white', relief='flat')
             self.tree = ttk.Treeview(tree_frame, show='headings')
             self.tree.grid(row=0, column=0, sticky='nsew')
             vsb = ttk.Scrollbar(tree_frame, orient='vertical', command=self.tree.yview); vsb.grid(row=0, column=1, sticky='ns')
