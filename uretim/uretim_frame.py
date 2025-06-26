@@ -75,6 +75,7 @@ class UretimFrame(ctk.CTkFrame):
 
     def yeni_is_emri_penceresi_ac(self):
         self.secili_musteri_id_yeni_is_emri = None
+        self.cam_listesi_temp = []
 
         win = ctk.CTkToplevel(self)
         win.title("Yeni İş Emri")
@@ -111,6 +112,92 @@ class UretimFrame(ctk.CTkFrame):
         self.is_emri_fiyat_entry = ctk.CTkEntry(win)
         self.is_emri_fiyat_entry.grid(row=5, column=1, padx=10, pady=10, sticky="ew")
 
+        def cam_listesi_penceresi_ac():
+            self.cam_listesi_temp = []
+            p = ctk.CTkToplevel(win)
+            p.title("Cam Listesi")
+            p.geometry("400x400")
+
+            count_frame = ctk.CTkFrame(p)
+            count_frame.pack(fill="both", expand=True)
+            ctk.CTkLabel(count_frame, text="Kaç adet cam gireceksiniz?").pack(pady=10)
+            adet_entry = ctk.CTkEntry(count_frame)
+            adet_entry.pack(pady=10)
+
+            def olustur():
+                try:
+                    adet = int(adet_entry.get())
+                except ValueError:
+                    return messagebox.showerror("Hata", "Geçerli bir sayı girin.", parent=p)
+                count_frame.destroy()
+
+                liste_frame = ctk.CTkScrollableFrame(p, width=360, height=250)
+                liste_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+                headers = ["En", "Boy", "Poz", "m²"]
+                for idx, h in enumerate(headers):
+                    ctk.CTkLabel(liste_frame, text=h).grid(row=0, column=idx, padx=5)
+
+                en_entries = []
+                boy_entries = []
+                poz_entries = []
+                m2_labels = []
+
+                total_var = ctk.StringVar(value="Toplam m²: 0.00")
+
+                def hesapla(*args):
+                    toplam = 0
+                    for i in range(adet):
+                        try:
+                            en = float(en_entries[i].get())
+                            boy = float(boy_entries[i].get())
+                            m2 = en * boy / 10000
+                        except ValueError:
+                            m2 = 0
+                        m2_labels[i].configure(text=f"{m2:.2f}")
+                        toplam += m2
+                    total_var.set(f"Toplam m²: {toplam:.2f}")
+
+                for i in range(adet):
+                    en_e = ctk.CTkEntry(liste_frame, width=60)
+                    en_e.grid(row=i+1, column=0, padx=5, pady=2)
+                    boy_e = ctk.CTkEntry(liste_frame, width=60)
+                    boy_e.grid(row=i+1, column=1, padx=5, pady=2)
+                    poz_e = ctk.CTkEntry(liste_frame, width=80)
+                    poz_e.grid(row=i+1, column=2, padx=5, pady=2)
+                    m2_l = ctk.CTkLabel(liste_frame, text="0.00")
+                    m2_l.grid(row=i+1, column=3, padx=5, pady=2)
+
+                    en_e.bind("<KeyRelease>", lambda e, idx=i: hesapla())
+                    boy_e.bind("<KeyRelease>", lambda e, idx=i: hesapla())
+
+                    en_entries.append(en_e)
+                    boy_entries.append(boy_e)
+                    poz_entries.append(poz_e)
+                    m2_labels.append(m2_l)
+
+                toplam_label = ctk.CTkLabel(p, textvariable=total_var)
+                toplam_label.pack(pady=5)
+
+                def kaydet_liste():
+                    self.cam_listesi_temp = []
+                    for i in range(adet):
+                        try:
+                            en = float(en_entries[i].get())
+                            boy = float(boy_entries[i].get())
+                            m2 = en * boy / 10000
+                        except ValueError:
+                            continue
+                        poz = poz_entries[i].get()
+                        self.cam_listesi_temp.append((en, boy, m2, poz))
+                    p.destroy()
+
+                ctk.CTkButton(p, text="Kaydet", command=kaydet_liste).pack(pady=10)
+
+            ctk.CTkButton(count_frame, text="Tamam", command=olustur).pack(pady=10)
+            p.transient(win)
+            p.grab_set()
+
         def kaydet():
             nitelik = self.yeni_is_emri_nitelik_entry.get()
             miktar_str = self.yeni_is_emri_miktar_entry.get()
@@ -125,7 +212,9 @@ class UretimFrame(ctk.CTkFrame):
             except ValueError:
                 return messagebox.showerror("Hata", "Miktar ve Fiyat sayısal olmalıdır.", parent=win)
 
-            self.db.is_emri_ekle(self.secili_musteri_id_yeni_is_emri, firma_must, nitelik, miktar, fiyat, tarih)
+            is_id = self.db.is_emri_ekle(self.secili_musteri_id_yeni_is_emri, firma_must, nitelik, miktar, fiyat, tarih)
+            for en, boy, m2, poz in self.cam_listesi_temp:
+                self.db.cam_listesi_ekle(is_id, en, boy, m2, poz)
             if self.secili_musteri_id_yeni_is_emri:
                 self.db.musteri_hesap_hareketi_ekle(self.secili_musteri_id_yeni_is_emri, tarih, f"İş Emri: {nitelik}", fiyat, 0)
             messagebox.showinfo("Başarılı", "İş emri başarıyla eklendi.")
@@ -136,7 +225,8 @@ class UretimFrame(ctk.CTkFrame):
                 self.app.musteri_frame.musterileri_goster()
             win.destroy()
 
-        ctk.CTkButton(win, text="Kaydet", command=kaydet, height=35).grid(row=6, column=1, padx=10, pady=20, sticky="e")
+        ctk.CTkButton(win, text="Liste Ekle", command=cam_listesi_penceresi_ac).grid(row=6, column=0, padx=10, pady=10, sticky="w")
+        ctk.CTkButton(win, text="Kaydet", command=kaydet, height=35).grid(row=7, column=1, padx=10, pady=20, sticky="e")
         win.grid_columnconfigure(1, weight=1)
         win.transient(self); win.grab_set()
 

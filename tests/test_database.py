@@ -86,3 +86,9 @@ def test_faturalari_getir_by_musteri(db):
     assert _is_sorted_by_date_id(rows)
     nums = [r[2] for r in rows]
     assert nums == ['F001', 'F003']
+
+def test_cam_listesi_ekle_ve_getir(db):
+    is_id = db.is_emri_ekle(1, 'CustX', 'Test', 1, 10, '2023-01-04')
+    db.cam_listesi_ekle(is_id, 1000, 2000, 2.0, 'P1')
+    rows = db.cam_listesini_getir(is_id)
+    assert rows == [(1000, 2000, 2.0, 'P1')]
