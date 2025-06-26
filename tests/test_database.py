@@ -92,3 +92,9 @@ def test_cam_listesi_ekle_ve_getir(db):
     db.cam_listesi_ekle(is_id, 1000, 2000, 2.0, 'P1')
     rows = db.cam_listesini_getir(is_id)
     assert rows == [(1000, 2000, 2.0, 'P1')]
+
+def test_is_emri_getir_by_id_order(db):
+    is_id = db.is_emri_ekle(1, 'ClientZ', 'Desc', 5, 50, '2023-01-05')
+    row = db.is_emri_getir_by_id(is_id)
+    assert row[2] == 'ClientZ'
+    assert row[3] == 'Desc'

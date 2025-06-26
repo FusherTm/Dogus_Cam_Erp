@@ -289,7 +289,11 @@ class Database:
         return self.cursor.fetchall()
     def is_emri_durum_guncelle(self, is_emri_id, yeni_durum): self.cursor.execute("UPDATE is_emirleri SET durum = ? WHERE id = ?", (yeni_durum, is_emri_id)); self.conn.commit()
     def is_emri_getir_by_id(self, is_emri_id):
-        self.cursor.execute("SELECT * FROM is_emirleri WHERE id = ?", (is_emri_id,))
+        self.cursor.execute(
+            "SELECT id, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih "
+            "FROM is_emirleri WHERE id = ?",
+            (is_emri_id,),
+        )
         return self.cursor.fetchone()
     def is_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM is_emirleri WHERE musteri_id = ? ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
 
