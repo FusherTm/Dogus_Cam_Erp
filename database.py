@@ -307,6 +307,14 @@ class Database:
         )
         return self.cursor.fetchall()
 
+    def cam_listesi_var_mi(self, is_emri_id):
+        """Belirtilen iş emri için cam listesi olup olmadığını kontrol et"""
+        self.cursor.execute(
+            "SELECT 1 FROM cam_listeleri WHERE is_emri_id = ? LIMIT 1",
+            (is_emri_id,),
+        )
+        return self.cursor.fetchone() is not None
+
     # --- TEMPER SİPARİŞ FONKSİYONLARI ---
     def temper_emri_ekle(self, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, tarih=None, durum="Bekliyor"):
         if tarih is None:
