@@ -188,6 +188,7 @@ class UretimFrame(ctk.CTkFrame):
 
                 def kaydet_liste():
                     self.cam_listesi_temp = []
+                    toplam = 0
                     for i in range(adet):
                         try:
                             en = float(en_entries[i].get())
@@ -197,6 +198,9 @@ class UretimFrame(ctk.CTkFrame):
                             continue
                         poz = poz_entries[i].get()
                         self.cam_listesi_temp.append((en, boy, m2, poz))
+                        toplam += m2
+                    self.yeni_is_emri_miktar_entry.delete(0, 'end')
+                    self.yeni_is_emri_miktar_entry.insert(0, f"{toplam:.2f}")
                     p.destroy()
 
                 ctk.CTkButton(p, text="Kaydet", command=kaydet_liste).pack(pady=10)

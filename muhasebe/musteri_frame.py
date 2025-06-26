@@ -219,6 +219,7 @@ class MusteriFrame(ctk.CTkFrame):
             if musteri:
                 musteri_adi = musteri[1]
         firma_musterisi = is_emri[2] or ""
+        aciklama = is_emri[3] or ""
         toplam_m2 = sum((en * boy) / 10000 for en, boy, *_ in liste)
 
         win = ctk.CTkToplevel(self)
@@ -230,6 +231,8 @@ class MusteriFrame(ctk.CTkFrame):
         ctk.CTkLabel(info, text=f"Cari: {musteri_adi or 'Muhtelif'}").pack(anchor="w")
         if firma_musterisi:
             ctk.CTkLabel(info, text=f"Firmanın Müşterisi: {firma_musterisi}").pack(anchor="w")
+        if aciklama:
+            ctk.CTkLabel(info, text=f"Açıklama: {aciklama}").pack(anchor="w")
         ctk.CTkLabel(info, text=f"Toplam Cam Sayısı: {len(liste)}").pack(anchor="w")
         ctk.CTkLabel(info, text=f"Toplam m²: {toplam_m2:.2f}").pack(anchor="w")
 
