@@ -175,7 +175,7 @@ class MusteriFrame(ctk.CTkFrame):
     def is_gecmisini_goster(self, musteri_id):
         for i in self.is_emri_tree.get_children(): self.is_emri_tree.delete(i)
         for is_emri in self.db.is_emirlerini_getir_by_musteri_id(musteri_id):
-            liste_var = self.db.cam_listesi_var_mi(is_emri[0])
+            liste_var = self.db.cam_listesi_var_mi(is_emri[0]) or self.db.is_emri_liste_dosyasi_getir(is_emri[0])
             btn_text = "Listeyi Gör" if liste_var else ""
             values = (*is_emri, btn_text)
             self.is_emri_tree.insert("", "end", values=values, tags=(is_emri[4],))
@@ -208,8 +208,15 @@ class MusteriFrame(ctk.CTkFrame):
 
     def _cam_listesi_penceresi_ac(self, is_emri_id):
         liste = self.db.cam_listesini_getir(is_emri_id)
-        if not liste:
+        dosya = self.db.is_emri_liste_dosyasi_getir(is_emri_id)
+        if not liste and not dosya:
             messagebox.showinfo("Bilgi", "Bu iş emrine ait cam listesi bulunamadı.")
+            return
+        if dosya and not liste:
+            if os.path.isfile(dosya):
+                webbrowser.open_new_tab('file://' + os.path.abspath(dosya))
+            else:
+                messagebox.showerror("Hata", "Dosya bulunamadı.")
             return
 
         is_emri = self.db.is_emri_getir_by_id(is_emri_id)
@@ -256,6 +263,9 @@ class MusteriFrame(ctk.CTkFrame):
         for idx, (en, boy, _m2, poz) in enumerate(liste, start=1):
             m2_val = en * boy / 10000
             tree.insert("", "end", values=(idx, en, boy, f"{m2_val:.2f}", poz))
+
+        if dosya:
+            ctk.CTkButton(win, text="Yüklenen Dosyayı Aç", command=lambda: webbrowser.open_new_tab('file://' + os.path.abspath(dosya))).pack(pady=5)
 
         win.transient(self)
         win.grab_set()
