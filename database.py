@@ -87,6 +87,15 @@ class Database:
                         tarih TEXT,
                         FOREIGN KEY (musteri_id) REFERENCES musteriler(id) ON DELETE SET NULL
                     )''')
+        c.execute('''CREATE TABLE IF NOT EXISTS cam_listeleri (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        is_emri_id INTEGER,
+                        en REAL,
+                        boy REAL,
+                        m2 REAL,
+                        poz TEXT,
+                        FOREIGN KEY (is_emri_id) REFERENCES is_emirleri(id) ON DELETE CASCADE
+                    )''')
         self.conn.commit()
 
         # Ensure new columns exist when database was created with older schema
@@ -265,6 +274,7 @@ class Database:
             (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih)
         )
         self.conn.commit()
+        return self.cursor.lastrowid
     def is_emirlerini_getir(self, arama_terimi=""):
         query = (
             "SELECT i.id, i.tarih, m.firma_adi, i.urun_niteligi, i.miktar_m2, i.durum "
@@ -282,6 +292,20 @@ class Database:
         self.cursor.execute("SELECT * FROM is_emirleri WHERE id = ?", (is_emri_id,))
         return self.cursor.fetchone()
     def is_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM is_emirleri WHERE musteri_id = ? ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
+
+    def cam_listesi_ekle(self, is_emri_id, en, boy, m2, poz):
+        self.cursor.execute(
+            "INSERT INTO cam_listeleri (is_emri_id, en, boy, m2, poz) VALUES (?, ?, ?, ?, ?)",
+            (is_emri_id, en, boy, m2, poz)
+        )
+        self.conn.commit()
+
+    def cam_listesini_getir(self, is_emri_id):
+        self.cursor.execute(
+            "SELECT en, boy, m2, poz FROM cam_listeleri WHERE is_emri_id = ?",
+            (is_emri_id,)
+        )
+        return self.cursor.fetchall()
 
     # --- TEMPER SİPARİŞ FONKSİYONLARI ---
     def temper_emri_ekle(self, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, tarih=None, durum="Bekliyor"):
