@@ -52,6 +52,7 @@ class FaturaFrame(ctk.CTkFrame):
         kalemler_frame = ctk.CTkFrame(main_frame); kalemler_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
         kalemler_frame.grid_rowconfigure(0, weight=1); kalemler_frame.grid_columnconfigure(0, weight=1)
         style = ttk.Style()
+        style.theme_use("clam")
         style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map("Treeview", background=[("selected", "#22559b")])
         style.configure(

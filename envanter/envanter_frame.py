@@ -63,6 +63,7 @@ class EnvanterFrame(ctk.CTkFrame):
         self.arama_entry.bind("<KeyRelease>", lambda e: self.urunleri_goster())
 
         style = ttk.Style()
+        style.theme_use("clam")
         style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map("Treeview", background=[("selected", "#22559b")])
         style.configure(

@@ -88,6 +88,7 @@ class FinansFrame(ctk.CTkFrame):
             tree_frame.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
             tree_frame.grid_rowconfigure(0, weight=1); tree_frame.grid_columnconfigure(0, weight=1)
             style = ttk.Style()
+            style.theme_use('clam')
             style.configure('Treeview', background='#2a2d2e', foreground='white', fieldbackground='#343638', borderwidth=0)
             style.map('Treeview', background=[('selected', '#22559b')])
             style.configure(
