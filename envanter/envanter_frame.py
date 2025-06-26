@@ -62,7 +62,16 @@ class EnvanterFrame(ctk.CTkFrame):
         self.arama_entry.pack(padx=10, pady=5, fill="x")
         self.arama_entry.bind("<KeyRelease>", lambda e: self.urunleri_goster())
 
-        style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0); style.map('Treeview', background=[('selected', '#22559b')]); style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
+        style = ttk.Style()
+        style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
+        style.map("Treeview", background=[("selected", "#22559b")])
+        style.configure(
+            "Treeview.Heading",
+            background="#1E1E2F",
+            foreground="#FFFFFF",
+            relief="flat",
+            font=("Helvetica", 10, "bold"),
+        )
         self.urun_tree = ttk.Treeview(list_container, columns=("ID", "Ad", "Tip", "Stok", "Birim", "Maliyet"), show="headings")
         self.urun_tree.pack(expand=True, fill="both", padx=10, pady=10)
         self.urun_tree.heading("ID", text="ID"); self.urun_tree.column("ID", width=40)
