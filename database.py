@@ -96,6 +96,43 @@ class Database:
                         poz TEXT,
                         FOREIGN KEY (is_emri_id) REFERENCES is_emirleri(id) ON DELETE CASCADE
                     )''')
+        c.execute('''CREATE TABLE IF NOT EXISTS cekler (
+                        id INTEGER PRIMARY KEY,
+                        cek_no TEXT,
+                        banka_adi TEXT,
+                        sube TEXT,
+                        tutar REAL,
+                        vade_tarihi TEXT,
+                        kesideci TEXT,
+                        durum TEXT,
+                        aciklama TEXT,
+                        dosya_path TEXT
+                    )''')
+        c.execute('''CREATE TABLE IF NOT EXISTS tapular (
+                        id INTEGER PRIMARY KEY,
+                        il TEXT,
+                        ilce TEXT,
+                        mahalle TEXT,
+                        ada_parsel TEXT,
+                        yuzolcumu REAL,
+                        cinsi TEXT,
+                        imar_durumu TEXT,
+                        tahmini_deger REAL,
+                        aciklama TEXT,
+                        dosya_path TEXT
+                    )''')
+        c.execute('''CREATE TABLE IF NOT EXISTS araclar (
+                        id INTEGER PRIMARY KEY,
+                        plaka TEXT,
+                        marka_model TEXT,
+                        tip TEXT,
+                        yil INTEGER,
+                        ruhsat_sahibi TEXT,
+                        tahmini_deger REAL,
+                        durum TEXT,
+                        aciklama TEXT,
+                        dosya_path TEXT
+                    )''')
         self.conn.commit()
 
         # Ensure new columns exist when database was created with older schema
@@ -318,6 +355,43 @@ class Database:
             (is_emri_id,),
         )
         return self.cursor.fetchone() is not None
+
+    # --- VARLIKLAR ---
+    def cek_ekle(self, cek_no, banka_adi, sube, tutar, vade_tarihi, kesideci, durum, aciklama, dosya_path):
+        self.cursor.execute(
+            """INSERT INTO cekler (cek_no, banka_adi, sube, tutar, vade_tarihi, kesideci, durum, aciklama, dosya_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (cek_no, banka_adi, sube, tutar, vade_tarihi, kesideci, durum, aciklama, dosya_path),
+        )
+        self.conn.commit()
+
+    def cekleri_getir(self):
+        self.cursor.execute("SELECT * FROM cekler ORDER BY vade_tarihi DESC, id DESC")
+        return self.cursor.fetchall()
+
+    def tapu_ekle(self, il, ilce, mahalle, ada_parsel, yuzolcumu, cinsi, imar_durumu, tahmini_deger, aciklama, dosya_path):
+        self.cursor.execute(
+            """INSERT INTO tapular (il, ilce, mahalle, ada_parsel, yuzolcumu, cinsi, imar_durumu, tahmini_deger, aciklama, dosya_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (il, ilce, mahalle, ada_parsel, yuzolcumu, cinsi, imar_durumu, tahmini_deger, aciklama, dosya_path),
+        )
+        self.conn.commit()
+
+    def tapulari_getir(self):
+        self.cursor.execute("SELECT * FROM tapular ORDER BY id DESC")
+        return self.cursor.fetchall()
+
+    def arac_ekle(self, plaka, marka_model, tip, yil, ruhsat_sahibi, tahmini_deger, durum, aciklama, dosya_path):
+        self.cursor.execute(
+            """INSERT INTO araclar (plaka, marka_model, tip, yil, ruhsat_sahibi, tahmini_deger, durum, aciklama, dosya_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (plaka, marka_model, tip, yil, ruhsat_sahibi, tahmini_deger, durum, aciklama, dosya_path),
+        )
+        self.conn.commit()
+
+    def araclari_getir(self):
+        self.cursor.execute("SELECT * FROM araclar ORDER BY id DESC")
+        return self.cursor.fetchall()
 
     # --- TEMPER SİPARİŞ FONKSİYONLARI ---
     def temper_emri_ekle(self, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, tarih=None, durum="Bekliyor"):
