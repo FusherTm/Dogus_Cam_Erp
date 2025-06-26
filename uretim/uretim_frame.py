@@ -39,7 +39,7 @@ class UretimFrame(ctk.CTkFrame):
         style = ttk.Style()
         style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map('Treeview', background=[('selected', '#22559b')])
-        style.configure("Treeview.Heading", background="#565b5e", foreground="white", relief="flat")
+        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
         
         self.tree = ttk.Treeview(liste_frame, columns=("ID", "Tarih", "Firma Adı", "Ürün Niteliği", "Miktar", "Durum"), show="headings")
         self.tree.pack(side="left", expand=True, fill="both")

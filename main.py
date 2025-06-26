@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from tkinter import ttk
 import sys
 
 # Modülleri içeri aktar
@@ -30,6 +31,10 @@ class App(ctk.CTk):
         super().__init__()
         self.title("Doğuş ERP Sistemi")
         self.geometry("1440x820")
+
+        # Global Treeview header style
+        style = ttk.Style()
+        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
 
         # Global event bus for cross-module notifications
         self.event_bus = EventBus()

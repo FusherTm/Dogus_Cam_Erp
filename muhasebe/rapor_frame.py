@@ -89,7 +89,7 @@ class RaporFrame(ctk.CTkFrame):
         sag_frame.grid(row=0, column=1, padx=(5,0), sticky="nsew")
         sag_frame.grid_rowconfigure(0, weight=1); sag_frame.grid_columnconfigure(0, weight=1)
         
-        style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
+        style = ttk.Style(); style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0); style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
         tree = ttk.Treeview(sag_frame, columns=("Tip", "Açıklama", "Tutar"), show="headings"); tree.pack(expand=True, fill="both", padx=10, pady=10)
         tree.heading("Tip", text="Tip"); tree.column("Tip", width=120)
         tree.heading("Açıklama", text="Açıklama")
