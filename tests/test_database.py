@@ -98,3 +98,11 @@ def test_is_emri_getir_by_id_order(db):
     row = db.is_emri_getir_by_id(is_id)
     assert row[2] == 'ClientZ'
     assert row[3] == 'Desc'
+
+def test_varliklar_crud(db):
+    db.cek_ekle('C1', 'Bank', 'Sube', 100.0, '2023-01-10', 'Kes', 'Portföyde', '', '')
+    db.tapu_ekle('İl', 'İlçe', 'Mah', '1/1', 50.0, 'Arsa', '', 1000.0, '', '')
+    db.arac_ekle('34AA', 'Model', 'Otomobil', 2020, 'Firma', 200.0, 'Aktif', '', '')
+    assert db.cekleri_getir()[0][1] == 'C1'
+    assert db.tapulari_getir()[0][1] == 'İl'
+    assert db.araclari_getir()[0][1] == '34AA'
