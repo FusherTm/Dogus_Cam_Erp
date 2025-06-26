@@ -34,7 +34,13 @@ class App(ctk.CTk):
 
         # Global Treeview header style
         style = ttk.Style()
-        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
+        style.configure(
+            "Treeview.Heading",
+            background="#1E1E2F",
+            foreground="#FFFFFF",
+            relief="flat",
+            font=("Helvetica", 10, "bold"),
+        )
 
         # Global event bus for cross-module notifications
         self.event_bus = EventBus()

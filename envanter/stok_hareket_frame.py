@@ -22,7 +22,13 @@ class StokHareketFrame(ctk.CTkFrame):
         style.configure("Treeview", background="#2a2d2e", foreground="white",
                         fieldbackground="#343638", borderwidth=0)
         style.map('Treeview', background=[('selected', '#22559b')])
-        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
+        style.configure(
+            "Treeview.Heading",
+            background="#1E1E2F",
+            foreground="#FFFFFF",
+            relief="flat",
+            font=("Helvetica", 10, "bold"),
+        )
 
         self.tree = ttk.Treeview(container, columns=("ID", "Tarih", "Ürün", "Tip", "Miktar", "Açıklama"), show="headings")
         self.tree.grid(row=0, column=0, sticky="nsew")

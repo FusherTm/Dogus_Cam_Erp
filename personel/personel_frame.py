@@ -59,7 +59,13 @@ class PersonelFrame(ctk.CTkFrame):
         style = ttk.Style()
         style.configure("Treeview", background="#2a2d2e", foreground="white", fieldbackground="#343638", borderwidth=0)
         style.map('Treeview', background=[('selected', '#22559b')])
-        style.configure("Treeview.Heading", background="#333333", foreground="white", relief="flat")
+        style.configure(
+            "Treeview.Heading",
+            background="#1E1E2F",
+            foreground="#FFFFFF",
+            relief="flat",
+            font=("Helvetica", 10, "bold"),
+        )
         self.tree = ttk.Treeview(list_frame, columns=("ID", "Ad Soyad", "Pozisyon", "Maaş"), show="headings")
         self.tree.pack(expand=True, fill="both", padx=10, pady=10)
         for col in self.tree['columns']: self.tree.heading(col, text=col)
