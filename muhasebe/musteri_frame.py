@@ -85,14 +85,20 @@ class MusteriFrame(ctk.CTkFrame):
 
         # --- İş Emirleri Sekmesi ---
         is_gecmisi_frame = alt_tab_view.tab("İş Emirleri"); is_gecmisi_frame.grid_rowconfigure(0, weight=1); is_gecmisi_frame.grid_columnconfigure(0, weight=1)
-        self.is_emri_tree = ttk.Treeview(is_gecmisi_frame, columns=("ID", "Tarih", "Ürün Niteliği", "Miktar", "Durum"), show="headings")
+        self.is_emri_tree = ttk.Treeview(
+            is_gecmisi_frame,
+            columns=("ID", "Tarih", "Ürün Niteliği", "Miktar", "Durum", "Liste"),
+            show="headings",
+        )
         self.is_emri_tree.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         self.is_emri_tree.heading("ID", text="İş Emri No"); self.is_emri_tree.column("ID", width=80)
         self.is_emri_tree.heading("Tarih", text="Tarih"); self.is_emri_tree.column("Tarih", width=100)
         self.is_emri_tree.heading("Ürün Niteliği", text="Ürün Niteliği")
         self.is_emri_tree.heading("Miktar", text="Miktar (m²)", anchor="e"); self.is_emri_tree.column("Miktar", width=100, anchor="e")
         self.is_emri_tree.heading("Durum", text="Durum", anchor="center"); self.is_emri_tree.column("Durum", width=100, anchor="center")
+        self.is_emri_tree.heading("Liste", text="Liste"); self.is_emri_tree.column("Liste", width=80, anchor="center")
         self.is_emri_tree.tag_configure('Bekliyor', background='#636300', foreground='white'); self.is_emri_tree.tag_configure('Üretimde', background='#005B9A', foreground='white'); self.is_emri_tree.tag_configure('Hazır', background='#006325', foreground='white')
+        self.is_emri_tree.bind("<Button-1>", self._is_emri_liste_btn)
 
         # --- Temper Siparişleri Sekmesi (YENİ) ---
         temper_gecmisi_frame = alt_tab_view.tab("Temper Siparişleri"); temper_gecmisi_frame.grid_rowconfigure(0, weight=1); temper_gecmisi_frame.grid_columnconfigure(0, weight=1)
@@ -169,7 +175,10 @@ class MusteriFrame(ctk.CTkFrame):
     def is_gecmisini_goster(self, musteri_id):
         for i in self.is_emri_tree.get_children(): self.is_emri_tree.delete(i)
         for is_emri in self.db.is_emirlerini_getir_by_musteri_id(musteri_id):
-            self.is_emri_tree.insert("", "end", values=is_emri, tags=(is_emri[4],))
+            liste_var = self.db.cam_listesi_var_mi(is_emri[0])
+            btn_text = "Listeyi Gör" if liste_var else ""
+            values = (*is_emri, btn_text)
+            self.is_emri_tree.insert("", "end", values=values, tags=(is_emri[4],))
 
     # YENİ: Müşterinin temper geçmişini listeleyen fonksiyon
     def temper_gecmisini_goster(self, musteri_id):
@@ -184,6 +193,69 @@ class MusteriFrame(ctk.CTkFrame):
             self.fatura_tree.insert(
                 "", "end", values=(fatura[0], fatura[1], fatura[2], f"{fatura[3]:.2f} ₺")
             )
+
+    def _is_emri_liste_btn(self, event):
+        col = self.is_emri_tree.identify_column(event.x)
+        if col != "#6":
+            return
+        row_id = self.is_emri_tree.identify_row(event.y)
+        if not row_id:
+            return
+        values = self.is_emri_tree.item(row_id, "values")
+        if len(values) < 6 or values[5] != "Listeyi Gör":
+            return
+        self._cam_listesi_penceresi_ac(values[0])
+
+    def _cam_listesi_penceresi_ac(self, is_emri_id):
+        liste = self.db.cam_listesini_getir(is_emri_id)
+        if not liste:
+            messagebox.showinfo("Bilgi", "Bu iş emrine ait cam listesi bulunamadı.")
+            return
+
+        is_emri = self.db.is_emri_getir_by_id(is_emri_id)
+        musteri_adi = ""
+        if is_emri[1]:
+            musteri = self.db.musteri_getir_by_id(is_emri[1])
+            if musteri:
+                musteri_adi = musteri[1]
+        firma_musterisi = is_emri[2] or ""
+        toplam_m2 = sum((en * boy) / 10000 for en, boy, *_ in liste)
+
+        win = ctk.CTkToplevel(self)
+        win.title("Cam Listesi")
+        win.geometry("500x400")
+
+        info = ctk.CTkFrame(win)
+        info.pack(fill="x", padx=10, pady=10)
+        ctk.CTkLabel(info, text=f"Cari: {musteri_adi or 'Muhtelif'}").pack(anchor="w")
+        if firma_musterisi:
+            ctk.CTkLabel(info, text=f"Firmanın Müşterisi: {firma_musterisi}").pack(anchor="w")
+        ctk.CTkLabel(info, text=f"Toplam Cam Sayısı: {len(liste)}").pack(anchor="w")
+        ctk.CTkLabel(info, text=f"Toplam m²: {toplam_m2:.2f}").pack(anchor="w")
+
+        tree = ttk.Treeview(
+            win,
+            columns=("No", "En", "Boy", "m2", "Poz"),
+            show="headings",
+        )
+        tree.pack(expand=True, fill="both", padx=10, pady=10)
+        tree.heading("No", text="Sıra No")
+        tree.column("No", width=60, anchor="center")
+        tree.heading("En", text="En (cm)")
+        tree.column("En", width=80, anchor="center")
+        tree.heading("Boy", text="Boy (cm)")
+        tree.column("Boy", width=80, anchor="center")
+        tree.heading("m2", text="m²")
+        tree.column("m2", width=80, anchor="center")
+        tree.heading("Poz", text="Pozisyon")
+        tree.column("Poz", width=100)
+
+        for idx, (en, boy, _m2, poz) in enumerate(liste, start=1):
+            m2_val = en * boy / 10000
+            tree.insert("", "end", values=(idx, en, boy, f"{m2_val:.2f}", poz))
+
+        win.transient(self)
+        win.grab_set()
 
     # Yeni: seçili müşterinin hesap ekstresini HTML olarak görüntüle
     def hesap_ekstresi_goruntule(self):
