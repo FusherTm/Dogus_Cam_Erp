@@ -48,7 +48,11 @@ class UretimFrame(ctk.CTkFrame):
             font=("Helvetica", 10, "bold"),
         )
         
-        self.tree = ttk.Treeview(liste_frame, columns=("ID", "Tarih", "Firma Adı", "Ürün Niteliği", "Miktar", "Durum"), show="headings")
+        self.tree = ttk.Treeview(
+            liste_frame,
+            columns=("ID", "Tarih", "Firma Adı", "Ürün Niteliği", "Miktar", "Durum", "Liste"),
+            show="headings",
+        )
         self.tree.pack(side="left", expand=True, fill="both")
         
         vsb = ttk.Scrollbar(liste_frame, orient="vertical", command=self.tree.yview)
@@ -61,12 +65,14 @@ class UretimFrame(ctk.CTkFrame):
         self.tree.heading("Ürün Niteliği", text="Ürün Niteliği"); self.tree.column("Ürün Niteliği", width=300)
         self.tree.heading("Miktar", text="Miktar (m²)"); self.tree.column("Miktar", width=100, anchor="e")
         self.tree.heading("Durum", text="Durum"); self.tree.column("Durum", width=100, anchor="center")
+        self.tree.heading("Liste", text="Liste"); self.tree.column("Liste", width=80, anchor="center")
 
         self.tree.tag_configure('Bekliyor', background='#636300', foreground='white')
         self.tree.tag_configure('Üretimde', background='#005B9A', foreground='white')
         self.tree.tag_configure('Hazır', background='#006325', foreground='white')
 
         self.tree.bind("<Button-3>", self.durum_degistir_menu_goster)
+        self.tree.bind("<Button-1>", self._liste_btn)
 
     def verileri_yukle(self):
         """Bu fonksiyon, ana iş listesini yeniler."""
@@ -77,7 +83,17 @@ class UretimFrame(ctk.CTkFrame):
         for is_emri in self.db.is_emirlerini_getir(arama_terimi):
             # GÜNCELLENDİ: Firma adı yoksa "Muhtelif Müşteri" yaz
             firma_adi = is_emri[2] if is_emri[2] else "Muhtelif Müşteri"
-            gosterilecek_degerler = (is_emri[0], is_emri[1], firma_adi, is_emri[3], is_emri[4], is_emri[5])
+            liste_var = self.db.cam_listesi_var_mi(is_emri[0])
+            btn_text = "Listeyi Gör" if liste_var else ""
+            gosterilecek_degerler = (
+                is_emri[0],
+                is_emri[1],
+                firma_adi,
+                is_emri[3],
+                is_emri[4],
+                is_emri[5],
+                btn_text,
+            )
             self.tree.insert("", "end", values=gosterilecek_degerler, iid=is_emri[0], tags=(is_emri[5],))
 
     def yeni_is_emri_penceresi_ac(self):
@@ -272,3 +288,66 @@ class UretimFrame(ctk.CTkFrame):
         emri = self.db.is_emri_getir_by_id(is_emri_id)
         if emri and hasattr(self.app, 'event_bus'):
             self.app.event_bus.publish('is_emri_guncellendi', emri[1])
+
+    def _liste_btn(self, event):
+        col = self.tree.identify_column(event.x)
+        if col != "#7":
+            return
+        row_id = self.tree.identify_row(event.y)
+        if not row_id:
+            return
+        values = self.tree.item(row_id, "values")
+        if len(values) < 7 or values[6] != "Listeyi Gör":
+            return
+        self._cam_listesi_penceresi_ac(values[0])
+
+    def _cam_listesi_penceresi_ac(self, is_emri_id):
+        liste = self.db.cam_listesini_getir(is_emri_id)
+        if not liste:
+            messagebox.showinfo("Bilgi", "Bu iş emrine ait cam listesi bulunamadı.")
+            return
+
+        is_emri = self.db.is_emri_getir_by_id(is_emri_id)
+        musteri_adi = ""
+        if is_emri[1]:
+            musteri = self.db.musteri_getir_by_id(is_emri[1])
+            if musteri:
+                musteri_adi = musteri[1]
+        firma_musterisi = is_emri[2] or ""
+        toplam_m2 = sum((en * boy) / 10000 for en, boy, *_ in liste)
+
+        win = ctk.CTkToplevel(self)
+        win.title("Cam Listesi")
+        win.geometry("500x400")
+
+        info = ctk.CTkFrame(win)
+        info.pack(fill="x", padx=10, pady=10)
+        ctk.CTkLabel(info, text=f"Cari: {musteri_adi or 'Muhtelif'}").pack(anchor="w")
+        if firma_musterisi:
+            ctk.CTkLabel(info, text=f"Firmanın Müşterisi: {firma_musterisi}").pack(anchor="w")
+        ctk.CTkLabel(info, text=f"Toplam Cam Sayısı: {len(liste)}").pack(anchor="w")
+        ctk.CTkLabel(info, text=f"Toplam m²: {toplam_m2:.2f}").pack(anchor="w")
+
+        tree = ttk.Treeview(
+            win,
+            columns=("No", "En", "Boy", "m2", "Poz"),
+            show="headings",
+        )
+        tree.pack(expand=True, fill="both", padx=10, pady=10)
+        tree.heading("No", text="Sıra No")
+        tree.column("No", width=60, anchor="center")
+        tree.heading("En", text="En (cm)")
+        tree.column("En", width=80, anchor="center")
+        tree.heading("Boy", text="Boy (cm)")
+        tree.column("Boy", width=80, anchor="center")
+        tree.heading("m2", text="m²")
+        tree.column("m2", width=80, anchor="center")
+        tree.heading("Poz", text="Pozisyon")
+        tree.column("Poz", width=100)
+
+        for idx, (en, boy, _m2, poz) in enumerate(liste, start=1):
+            m2_val = en * boy / 10000
+            tree.insert("", "end", values=(idx, en, boy, f"{m2_val:.2f}", poz))
+
+        win.transient(self)
+        win.grab_set()
