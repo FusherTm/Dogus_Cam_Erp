@@ -310,6 +310,22 @@ class Database:
         )
         self.conn.commit()
 
+    def izin_ozetini_getir(self, personel_id, hak_edilen=14):
+        self.cursor.execute(
+            """
+            SELECT SUM(gun_sayisi) FROM Izinler
+            WHERE personel_id = ?
+              AND durum = 'Onaylandı'
+              AND izin_tipi = 'Yıllık İzin'
+              AND strftime('%Y', baslangic_tarihi) = strftime('%Y', 'now')
+            """,
+            (personel_id,),
+        )
+        used = self.cursor.fetchone()[0]
+        kullanilan = used if used is not None else 0
+        kalan = hak_edilen - kullanilan
+        return hak_edilen, kullanilan, kalan
+
     # --- KASA & BANKA & KATEGORİ ---
     def kasa_banka_ekle(self, hesap_adi, hesap_tipi, bakiye):
         try:
