@@ -1,53 +1,71 @@
-import sqlite3
+import psycopg2
 import datetime
+
+
+def get_db_connection():
+    """PostgreSQL veritabanına yeni bir bağlantı oluşturur ve döner."""
+    try:
+        conn = psycopg2.connect(
+            dbname="dogus_erp_db",
+            user="dogus_erp_user",
+            password="Dogus1234",
+            host="localhost",
+            port="5432",
+        )
+        return conn
+    except psycopg2.OperationalError as e:
+        print(f"Veritabanı bağlantı hatası: {e}")
+        return None
 
 class Database:
     def __init__(self, db_name="erp_database.db"):
-        self.conn = sqlite3.connect(db_name)
+        self.conn = get_db_connection()
+        if self.conn is None:
+            return
         self.cursor = self.conn.cursor()
         self.tablolari_olustur()
 
     def tablolari_olustur(self):
         c = self.cursor
         c.execute('''CREATE TABLE IF NOT EXISTS envanter (
-                        id INTEGER PRIMARY KEY, urun_adi TEXT NOT NULL UNIQUE, urun_tipi TEXT NOT NULL,
+                        id SERIAL PRIMARY KEY, urun_adi TEXT NOT NULL UNIQUE, urun_tipi TEXT NOT NULL,
                         stok_miktari REAL NOT NULL, birim TEXT, maliyet_fiyati REAL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS stok_hareketleri (
-                        id INTEGER PRIMARY KEY, urun_id INTEGER, tarih TEXT, hareket_tipi TEXT,
+                        id SERIAL PRIMARY KEY, urun_id INTEGER, tarih TEXT, hareket_tipi TEXT,
                         miktar REAL, fatura_id INTEGER, aciklama TEXT,
                         FOREIGN KEY (urun_id) REFERENCES envanter (id) ON DELETE CASCADE
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS musteriler (
-                        id INTEGER PRIMARY KEY, firma_adi TEXT NOT NULL UNIQUE, yetkili_ad_soyad TEXT,
+                        id SERIAL PRIMARY KEY, firma_adi TEXT NOT NULL UNIQUE, yetkili_ad_soyad TEXT,
                         telefon TEXT, email TEXT, adres TEXT, bakiye REAL DEFAULT 0
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS musteri_hesap_hareketleri (
-                        id INTEGER PRIMARY KEY, musteri_id INTEGER, tarih TEXT, aciklama TEXT,
+                        id SERIAL PRIMARY KEY, musteri_id INTEGER, tarih TEXT, aciklama TEXT,
                         borc REAL, alacak REAL, bakiye REAL, fatura_id INTEGER,
                         FOREIGN KEY (musteri_id) REFERENCES musteriler (id) ON DELETE CASCADE
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS faturalar (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, musteri_id INTEGER, tarih TEXT,
+                        id SERIAL PRIMARY KEY, musteri_id INTEGER, tarih TEXT,
                         fatura_no TEXT UNIQUE, fatura_tipi TEXT, toplam_tutar REAL,
                         FOREIGN KEY (musteri_id) REFERENCES musteriler (id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS fatura_kalemleri (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT, fatura_id INTEGER, urun_id INTEGER,
+                        id SERIAL PRIMARY KEY, fatura_id INTEGER, urun_id INTEGER,
                         miktar REAL, birim_fiyat REAL, toplam REAL,
                         FOREIGN KEY (fatura_id) REFERENCES faturalar (id) ON DELETE CASCADE,
                         FOREIGN KEY (urun_id) REFERENCES envanter (id)
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS personel (
-                        id INTEGER PRIMARY KEY, ad_soyad TEXT NOT NULL, pozisyon TEXT,
+                        id SERIAL PRIMARY KEY, ad_soyad TEXT NOT NULL, pozisyon TEXT,
                         ise_baslama_tarihi TEXT, maas REAL, tc_kimlik TEXT, telefon TEXT
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS maas_odemeleri (
-                        id INTEGER PRIMARY KEY, personel_id INTEGER, odeme_tarihi TEXT,
+                        id SERIAL PRIMARY KEY, personel_id INTEGER, odeme_tarihi TEXT,
                         donem TEXT, tutar REAL, FOREIGN KEY (personel_id) REFERENCES personel (id) ON DELETE CASCADE
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS Izinler (
-                        izin_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        izin_id SERIAL PRIMARY KEY,
                         personel_id INTEGER,
                         izin_tipi TEXT,
                         baslangic_tarihi TEXT,
@@ -59,14 +77,14 @@ class Database:
                         FOREIGN KEY (personel_id) REFERENCES personel(id) ON DELETE CASCADE
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS kasa_banka (
-                        id INTEGER PRIMARY KEY, hesap_adi TEXT UNIQUE NOT NULL,
+                        id SERIAL PRIMARY KEY, hesap_adi TEXT UNIQUE NOT NULL,
                         hesap_tipi TEXT, bakiye REAL DEFAULT 0
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS kategoriler (
-                        id INTEGER PRIMARY KEY, ad TEXT UNIQUE NOT NULL
+                        id SERIAL PRIMARY KEY, ad TEXT UNIQUE NOT NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS finansal_hareketler (
-                        id INTEGER PRIMARY KEY, tarih TEXT NOT NULL, aciklama TEXT,
+                        id SERIAL PRIMARY KEY, tarih TEXT NOT NULL, aciklama TEXT,
                         gelir REAL, gider REAL, kategori_id INTEGER, hesap_id INTEGER,
                         musteri_id INTEGER, odeme_yontemi TEXT DEFAULT 'Nakit',
                         FOREIGN KEY (kategori_id) REFERENCES kategoriler (id) ON DELETE SET NULL,
@@ -74,11 +92,11 @@ class Database:
                         FOREIGN KEY (musteri_id) REFERENCES musteriler (id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS sabit_giderler (
-                        id INTEGER PRIMARY KEY, gider_adi TEXT UNIQUE NOT NULL, tutar REAL NOT NULL,
+                        id SERIAL PRIMARY KEY, gider_adi TEXT UNIQUE NOT NULL, tutar REAL NOT NULL,
                         kategori_id INTEGER, FOREIGN KEY (kategori_id) REFERENCES kategoriler (id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS is_emirleri (
-                        id INTEGER PRIMARY KEY,
+                        id SERIAL PRIMARY KEY,
                         musteri_id INTEGER,
                         firma_musterisi TEXT,
                         urun_niteligi TEXT,
@@ -90,7 +108,7 @@ class Database:
                         FOREIGN KEY (musteri_id) REFERENCES musteriler(id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS temper_emirleri (
-                        id INTEGER PRIMARY KEY,
+                        id SERIAL PRIMARY KEY,
                         musteri_id INTEGER,
                         firma_musterisi TEXT,
                         urun_niteligi TEXT,
@@ -101,7 +119,7 @@ class Database:
                         FOREIGN KEY (musteri_id) REFERENCES musteriler(id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS cam_listeleri (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        id SERIAL PRIMARY KEY,
                         is_emri_id INTEGER,
                         en REAL,
                         boy REAL,
@@ -110,7 +128,7 @@ class Database:
                         FOREIGN KEY (is_emri_id) REFERENCES is_emirleri(id) ON DELETE CASCADE
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS cekler (
-                        id INTEGER PRIMARY KEY,
+                        id SERIAL PRIMARY KEY,
                         cek_no TEXT,
                         banka_adi TEXT,
                         sube TEXT,
@@ -122,7 +140,7 @@ class Database:
                         dosya_path TEXT
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS tapular (
-                        id INTEGER PRIMARY KEY,
+                        id SERIAL PRIMARY KEY,
                         il TEXT,
                         ilce TEXT,
                         mahalle TEXT,
@@ -135,7 +153,7 @@ class Database:
                         dosya_path TEXT
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS araclar (
-                        id INTEGER PRIMARY KEY,
+                        id SERIAL PRIMARY KEY,
                         plaka TEXT,
                         marka_model TEXT,
                         tip TEXT,
@@ -154,45 +172,55 @@ class Database:
             'temper_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
             'finansal_hareketler': [('odeme_yontemi', "TEXT DEFAULT 'Nakit'")]
         }.items():
-            self.cursor.execute(f"PRAGMA table_info({table})")
-            existing = [row[1] for row in self.cursor.fetchall()]
+            self.cursor.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = %s",
+                (table,),
+            )
+            existing = [row[0] for row in self.cursor.fetchall()]
             for col_name, col_type in cols:
                 if col_name not in existing:
-                    self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}")
+                    self.cursor.execute(
+                        f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}"
+                    )
         self.conn.commit()
 
     # --- ENVANTER & REÇETE ---
     def urun_ekle(self, urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati):
         try:
-            self.cursor.execute("INSERT INTO envanter (urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati) VALUES (?, ?, ?, ?, ?)", (urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati))
-            self.conn.commit(); return self.cursor.lastrowid
-        except sqlite3.IntegrityError: return None
+            self.cursor.execute(
+                "INSERT INTO envanter (urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati),
+            )
+            new_id = self.cursor.fetchone()[0]
+            self.conn.commit()
+            return new_id
+        except psycopg2.IntegrityError: return None
 
     def urunleri_getir(self, arama_terimi="", urun_tipi=None):
         query, params = "SELECT * FROM envanter", []
         conditions = []
-        if arama_terimi: conditions.append("urun_adi LIKE ?"); params.append(f'%{arama_terimi}%')
-        if urun_tipi: conditions.append("urun_tipi = ?"); params.append(urun_tipi)
+        if arama_terimi: conditions.append("urun_adi LIKE %s"); params.append(f'%{arama_terimi}%')
+        if urun_tipi: conditions.append("urun_tipi = %s"); params.append(urun_tipi)
         if conditions: query += " WHERE " + " AND ".join(conditions)
         self.cursor.execute(query, tuple(params)); return self.cursor.fetchall()
 
     def urun_guncelle(self, id, urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati):
-        self.cursor.execute("UPDATE envanter SET urun_adi=?, urun_tipi=?, stok_miktari=?, birim=?, maliyet_fiyati=? WHERE id=?", (urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati, id)); self.conn.commit()
+        self.cursor.execute("UPDATE envanter SET urun_adi=%s, urun_tipi=%s, stok_miktari=%s, birim=%s, maliyet_fiyati=%s WHERE id=%s", (urun_adi, urun_tipi, stok_miktari, birim, maliyet_fiyati, id)); self.conn.commit()
 
     def urun_getir_by_id(self, urun_id):
-        self.cursor.execute("SELECT * FROM envanter WHERE id=?", (urun_id,)); return self.cursor.fetchone()
+        self.cursor.execute("SELECT * FROM envanter WHERE id=%s", (urun_id,)); return self.cursor.fetchone()
 
-    def urun_sil(self, id): self.cursor.execute("DELETE FROM envanter WHERE id=?", (id,)); self.conn.commit()
+    def urun_sil(self, id): self.cursor.execute("DELETE FROM envanter WHERE id=%s", (id,)); self.conn.commit()
 
     # --- STOK HAREKETLERİ ---
     def stok_guncelle(self, urun_id, miktar, hareket_tipi):
-        if hareket_tipi == 'Giriş': self.cursor.execute("UPDATE envanter SET stok_miktari = stok_miktari + ? WHERE id = ?", (miktar, urun_id))
-        elif hareket_tipi == 'Çıkış': self.cursor.execute("UPDATE envanter SET stok_miktari = stok_miktari - ? WHERE id = ?", (miktar, urun_id))
+        if hareket_tipi == 'Giriş': self.cursor.execute("UPDATE envanter SET stok_miktari = stok_miktari + %s WHERE id = %s", (miktar, urun_id))
+        elif hareket_tipi == 'Çıkış': self.cursor.execute("UPDATE envanter SET stok_miktari = stok_miktari - %s WHERE id = %s", (miktar, urun_id))
         self.conn.commit()
         
     def stok_hareketi_ekle(self, urun_id, hareket_tipi, miktar, fatura_id=None, aciklama=""):
         tarih = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        self.cursor.execute("INSERT INTO stok_hareketleri (urun_id, tarih, hareket_tipi, miktar, fatura_id, aciklama) VALUES (?, ?, ?, ?, ?, ?)", (urun_id, tarih, hareket_tipi, miktar, fatura_id, aciklama)); self.conn.commit()
+        self.cursor.execute("INSERT INTO stok_hareketleri (urun_id, tarih, hareket_tipi, miktar, fatura_id, aciklama) VALUES (%s, %s, %s, %s, %s, %s)", (urun_id, tarih, hareket_tipi, miktar, fatura_id, aciklama)); self.conn.commit()
 
     def stok_hareketlerini_getir(self, urun_id=None):
         query = (
@@ -201,7 +229,7 @@ class Database:
         )
         params = []
         if urun_id is not None:
-            query += " WHERE sh.urun_id = ?"
+            query += " WHERE sh.urun_id = %s"
             params.append(urun_id)
         query += " ORDER BY sh.tarih DESC, sh.id DESC"
         self.cursor.execute(query, tuple(params))
@@ -210,62 +238,67 @@ class Database:
     # --- MÜŞTERİ (CARİ) ---
     def musteri_ekle(self, firma_adi, yetkili, telefon, email, adres):
         try:
-            self.cursor.execute("INSERT INTO musteriler (firma_adi, yetkili_ad_soyad, telefon, email, adres, bakiye) VALUES (?, ?, ?, ?, ?, 0)", (firma_adi, yetkili, telefon, email, adres)); self.conn.commit()
+            self.cursor.execute("INSERT INTO musteriler (firma_adi, yetkili_ad_soyad, telefon, email, adres, bakiye) VALUES (%s, %s, %s, %s, %s, 0)", (firma_adi, yetkili, telefon, email, adres)); self.conn.commit()
             return True
-        except sqlite3.IntegrityError: return False
+        except psycopg2.IntegrityError: return False
 
     def musterileri_getir(self, arama_terimi=""):
-        if arama_terimi: self.cursor.execute("SELECT * FROM musteriler WHERE firma_adi LIKE ?", (f'%{arama_terimi}%',))
+        if arama_terimi: self.cursor.execute("SELECT * FROM musteriler WHERE firma_adi LIKE %s", (f'%{arama_terimi}%',))
         else: self.cursor.execute("SELECT * FROM musteriler ORDER BY firma_adi ASC")
         return self.cursor.fetchall()
         
     def musteri_guncelle(self, id, firma_adi, yetkili, telefon, email, adres):
-        self.cursor.execute("UPDATE musteriler SET firma_adi=?, yetkili_ad_soyad=?, telefon=?, email=?, adres=? WHERE id=?", (firma_adi, yetkili, telefon, email, adres, id)); self.conn.commit()
+        self.cursor.execute("UPDATE musteriler SET firma_adi=%s, yetkili_ad_soyad=%s, telefon=%s, email=%s, adres=%s WHERE id=%s", (firma_adi, yetkili, telefon, email, adres, id)); self.conn.commit()
 
-    def musteri_sil(self, id): self.cursor.execute("DELETE FROM musteriler WHERE id=?", (id,)); self.conn.commit()
-    def musteri_getir_by_id(self, musteri_id): self.cursor.execute("SELECT * FROM musteriler WHERE id=?", (musteri_id,)); return self.cursor.fetchone()
+    def musteri_sil(self, id): self.cursor.execute("DELETE FROM musteriler WHERE id=%s", (id,)); self.conn.commit()
+    def musteri_getir_by_id(self, musteri_id): self.cursor.execute("SELECT * FROM musteriler WHERE id=%s", (musteri_id,)); return self.cursor.fetchone()
     def musteri_hesap_hareketi_ekle(self, musteri_id, tarih, aciklama, borc, alacak, fatura_id=None):
-        self.cursor.execute("SELECT bakiye FROM musteriler WHERE id=?", (musteri_id,)); son_bakiye_tuple = self.cursor.fetchone()
+        self.cursor.execute("SELECT bakiye FROM musteriler WHERE id=%s", (musteri_id,)); son_bakiye_tuple = self.cursor.fetchone()
         son_bakiye = son_bakiye_tuple[0] if son_bakiye_tuple else 0; yeni_bakiye = son_bakiye + borc - alacak
-        self.cursor.execute('''INSERT INTO musteri_hesap_hareketleri (musteri_id, tarih, aciklama, borc, alacak, bakiye, fatura_id) VALUES (?, ?, ?, ?, ?, ?, ?)''', (musteri_id, tarih, aciklama, borc, alacak, yeni_bakiye, fatura_id))
-        self.cursor.execute("UPDATE musteriler SET bakiye = ? WHERE id = ?", (yeni_bakiye, musteri_id)); self.conn.commit()
+        self.cursor.execute('''INSERT INTO musteri_hesap_hareketleri (musteri_id, tarih, aciklama, borc, alacak, bakiye, fatura_id) VALUES (%s, %s, %s, %s, %s, %s, %s)''', (musteri_id, tarih, aciklama, borc, alacak, yeni_bakiye, fatura_id))
+        self.cursor.execute("UPDATE musteriler SET bakiye = %s WHERE id = %s", (yeni_bakiye, musteri_id)); self.conn.commit()
     def musteri_hesap_hareketlerini_getir(self, musteri_id):
-        self.cursor.execute("SELECT * FROM musteri_hesap_hareketleri WHERE musteri_id = ? ORDER BY tarih ASC, id ASC", (musteri_id,)); return self.cursor.fetchall()
+        self.cursor.execute("SELECT * FROM musteri_hesap_hareketleri WHERE musteri_id = %s ORDER BY tarih ASC, id ASC", (musteri_id,)); return self.cursor.fetchall()
 
     # --- FATURA ---
     def fatura_ekle(self, musteri_id, tarih, fatura_no, fatura_tipi, toplam_tutar):
         try:
-            self.cursor.execute("INSERT INTO faturalar (musteri_id, tarih, fatura_no, fatura_tipi, toplam_tutar) VALUES (?, ?, ?, ?, ?)", (musteri_id, tarih, fatura_no, fatura_tipi, toplam_tutar)); self.conn.commit()
-            return self.cursor.lastrowid
-        except sqlite3.IntegrityError: return None
+            self.cursor.execute(
+                "INSERT INTO faturalar (musteri_id, tarih, fatura_no, fatura_tipi, toplam_tutar) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (musteri_id, tarih, fatura_no, fatura_tipi, toplam_tutar),
+            )
+            new_id = self.cursor.fetchone()[0]
+            self.conn.commit()
+            return new_id
+        except psycopg2.IntegrityError: return None
 
     def fatura_kalemi_ekle(self, fatura_id, urun_id, miktar, birim_fiyat, toplam):
-        self.cursor.execute("INSERT INTO fatura_kalemleri (fatura_id, urun_id, miktar, birim_fiyat, toplam) VALUES (?, ?, ?, ?, ?)", (fatura_id, urun_id, miktar, birim_fiyat, toplam)); self.conn.commit()
+        self.cursor.execute("INSERT INTO fatura_kalemleri (fatura_id, urun_id, miktar, birim_fiyat, toplam) VALUES (%s, %s, %s, %s, %s)", (fatura_id, urun_id, miktar, birim_fiyat, toplam)); self.conn.commit()
     
     def faturalari_getir(self, arama_terimi=""):
         query = "SELECT f.id, f.fatura_no, f.tarih, m.firma_adi, f.fatura_tipi, f.toplam_tutar FROM faturalar f LEFT JOIN musteriler m ON f.musteri_id = m.id"
         params = []
-        if arama_terimi: query += " WHERE f.fatura_no LIKE ? OR m.firma_adi LIKE ?"; params.extend([f'%{arama_terimi}%', f'%{arama_terimi}%'])
+        if arama_terimi: query += " WHERE f.fatura_no LIKE %s OR m.firma_adi LIKE %s"; params.extend([f'%{arama_terimi}%', f'%{arama_terimi}%'])
         query += " ORDER BY f.tarih DESC, f.id DESC"
         self.cursor.execute(query, tuple(params)); return self.cursor.fetchall()
 
     def fatura_detaylarini_getir(self, fatura_id):
-        query = "SELECT e.urun_adi, fk.miktar, fk.birim_fiyat, fk.toplam FROM fatura_kalemleri fk JOIN envanter e ON fk.urun_id = e.id WHERE fk.fatura_id = ?"
+        query = "SELECT e.urun_adi, fk.miktar, fk.birim_fiyat, fk.toplam FROM fatura_kalemleri fk JOIN envanter e ON fk.urun_id = e.id WHERE fk.fatura_id = %s"
         self.cursor.execute(query, (fatura_id,)); return self.cursor.fetchall()
 
     def faturalari_getir_by_musteri_id(self, musteri_id):
         self.cursor.execute(
-            "SELECT id, tarih, fatura_no, toplam_tutar FROM faturalar WHERE musteri_id = ? ORDER BY tarih DESC, id DESC",
+            "SELECT id, tarih, fatura_no, toplam_tutar FROM faturalar WHERE musteri_id = %s ORDER BY tarih DESC, id DESC",
             (musteri_id,)
         )
         return self.cursor.fetchall()
 
     # --- PERSONEL ---
-    def personel_ekle(self, ad_soyad, pozisyon, ise_baslama, maas, tc, tel): self.cursor.execute("INSERT INTO personel (ad_soyad, pozisyon, ise_baslama_tarihi, maas, tc_kimlik, telefon) VALUES (?, ?, ?, ?, ?, ?)", (ad_soyad, pozisyon, ise_baslama, maas, tc, tel)); self.conn.commit()
+    def personel_ekle(self, ad_soyad, pozisyon, ise_baslama, maas, tc, tel): self.cursor.execute("INSERT INTO personel (ad_soyad, pozisyon, ise_baslama_tarihi, maas, tc_kimlik, telefon) VALUES (%s, %s, %s, %s, %s, %s)", (ad_soyad, pozisyon, ise_baslama, maas, tc, tel)); self.conn.commit()
     def personelleri_getir(self): self.cursor.execute("SELECT * FROM personel"); return self.cursor.fetchall()
-    def personel_guncelle(self, id, ad_soyad, pozisyon, ise_baslama, maas, tc, tel): self.cursor.execute("UPDATE personel SET ad_soyad=?, pozisyon=?, ise_baslama_tarihi=?, maas=?, tc_kimlik=?, telefon=? WHERE id=?", (ad_soyad, pozisyon, ise_baslama, maas, tc, tel, id)); self.conn.commit()
-    def personel_sil(self, id): self.cursor.execute("DELETE FROM personel WHERE id=?", (id,)); self.conn.commit()
-    def personel_getir_by_id(self, personel_id): self.cursor.execute("SELECT * FROM personel WHERE id=?", (personel_id,)); return self.cursor.fetchone()
+    def personel_guncelle(self, id, ad_soyad, pozisyon, ise_baslama, maas, tc, tel): self.cursor.execute("UPDATE personel SET ad_soyad=%s, pozisyon=%s, ise_baslama_tarihi=%s, maas=%s, tc_kimlik=%s, telefon=%s WHERE id=%s", (ad_soyad, pozisyon, ise_baslama, maas, tc, tel, id)); self.conn.commit()
+    def personel_sil(self, id): self.cursor.execute("DELETE FROM personel WHERE id=%s", (id,)); self.conn.commit()
+    def personel_getir_by_id(self, personel_id): self.cursor.execute("SELECT * FROM personel WHERE id=%s", (personel_id,)); return self.cursor.fetchone()
     def tum_maas_toplamini_getir(self): self.cursor.execute("SELECT SUM(maas) FROM personel"); result = self.cursor.fetchone()[0]; return result if result is not None else 0
 
     # --- İZİNLER ---
@@ -283,7 +316,7 @@ class Database:
         if talep_tarihi is None:
             talep_tarihi = datetime.datetime.now().strftime("%Y-%m-%d")
         self.cursor.execute(
-            """INSERT INTO Izinler (personel_id, izin_tipi, baslangic_tarihi, bitis_tarihi, gun_sayisi, aciklama, durum, talep_tarihi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO Izinler (personel_id, izin_tipi, baslangic_tarihi, bitis_tarihi, gun_sayisi, aciklama, durum, talep_tarihi) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
             (
                 personel_id,
                 izin_tipi,
@@ -305,7 +338,7 @@ class Database:
 
     def izin_durum_guncelle(self, izin_id, yeni_durum):
         self.cursor.execute(
-            "UPDATE Izinler SET durum = ? WHERE izin_id = ?",
+            "UPDATE Izinler SET durum = %s WHERE izin_id = %s",
             (yeni_durum, izin_id),
         )
         self.conn.commit()
@@ -314,10 +347,10 @@ class Database:
         self.cursor.execute(
             """
             SELECT SUM(gun_sayisi) FROM Izinler
-            WHERE personel_id = ?
+            WHERE personel_id = %s
               AND durum = 'Onaylandı'
               AND izin_tipi = 'Yıllık İzin'
-              AND strftime('%Y', baslangic_tarihi) = strftime('%Y', 'now')
+              AND EXTRACT(YEAR FROM baslangic_tarihi::date) = EXTRACT(YEAR FROM CURRENT_DATE)
             """,
             (personel_id,),
         )
@@ -329,42 +362,42 @@ class Database:
     # --- KASA & BANKA & KATEGORİ ---
     def kasa_banka_ekle(self, hesap_adi, hesap_tipi, bakiye):
         try:
-            self.cursor.execute("INSERT INTO kasa_banka (hesap_adi, hesap_tipi, bakiye) VALUES (?, ?, ?)", (hesap_adi, hesap_tipi, bakiye)); self.conn.commit()
+            self.cursor.execute("INSERT INTO kasa_banka (hesap_adi, hesap_tipi, bakiye) VALUES (%s, %s, %s)", (hesap_adi, hesap_tipi, bakiye)); self.conn.commit()
             return True
-        except sqlite3.IntegrityError: return False
+        except psycopg2.IntegrityError: return False
     def kasa_banka_getir(self): self.cursor.execute("SELECT * FROM kasa_banka"); return self.cursor.fetchall()
-    def kasa_banka_getir_by_id(self, hesap_id): self.cursor.execute("SELECT * FROM kasa_banka WHERE id = ?", (hesap_id,)); return self.cursor.fetchone()
+    def kasa_banka_getir_by_id(self, hesap_id): self.cursor.execute("SELECT * FROM kasa_banka WHERE id = %s", (hesap_id,)); return self.cursor.fetchone()
     def kategori_ekle(self, ad):
         try:
-            self.cursor.execute("INSERT INTO kategoriler (ad) VALUES (?)", (ad,)); self.conn.commit()
+            self.cursor.execute("INSERT INTO kategoriler (ad) VALUES (%s)", (ad,)); self.conn.commit()
             return True
-        except sqlite3.IntegrityError: return False
+        except psycopg2.IntegrityError: return False
     def kategorileri_getir(self): self.cursor.execute("SELECT * FROM kategoriler"); return self.cursor.fetchall()
-    def kategori_sil(self, id): self.cursor.execute("DELETE FROM kategoriler WHERE id=?", (id,)); self.conn.commit()
+    def kategori_sil(self, id): self.cursor.execute("DELETE FROM kategoriler WHERE id=%s", (id,)); self.conn.commit()
 
     # --- SABİT GİDERLER ---
     def sabit_gider_ekle(self, gider_adi, tutar, kategori_id):
         try:
-            self.cursor.execute("INSERT INTO sabit_giderler (gider_adi, tutar, kategori_id) VALUES (?, ?, ?)", (gider_adi, tutar, kategori_id)); self.conn.commit()
+            self.cursor.execute("INSERT INTO sabit_giderler (gider_adi, tutar, kategori_id) VALUES (%s, %s, %s)", (gider_adi, tutar, kategori_id)); self.conn.commit()
             return True
-        except sqlite3.IntegrityError: return False
+        except psycopg2.IntegrityError: return False
     def sabit_giderleri_getir(self):
         self.cursor.execute("SELECT sg.id, sg.gider_adi, sg.tutar, k.ad FROM sabit_giderler sg LEFT JOIN kategoriler k ON sg.kategori_id = k.id"); return self.cursor.fetchall()
-    def sabit_gider_sil(self, id): self.cursor.execute("DELETE FROM sabit_giderler WHERE id=?", (id,)); self.conn.commit()
+    def sabit_gider_sil(self, id): self.cursor.execute("DELETE FROM sabit_giderler WHERE id=%s", (id,)); self.conn.commit()
     def sabit_gider_ekle_veya_guncelle(self, gider_adi, tutar, kategori_adi="Personel Giderleri"):
-        self.cursor.execute("SELECT id FROM kategoriler WHERE ad = ?", (kategori_adi,)); kategori = self.cursor.fetchone()
-        if not kategori: self.kategori_ekle(kategori_adi); self.cursor.execute("SELECT id FROM kategoriler WHERE ad = ?", (kategori_adi,)); kategori_id = self.cursor.fetchone()[0]
+        self.cursor.execute("SELECT id FROM kategoriler WHERE ad = %s", (kategori_adi,)); kategori = self.cursor.fetchone()
+        if not kategori: self.kategori_ekle(kategori_adi); self.cursor.execute("SELECT id FROM kategoriler WHERE ad = %s", (kategori_adi,)); kategori_id = self.cursor.fetchone()[0]
         else: kategori_id = kategori[0]
-        self.cursor.execute("SELECT id FROM sabit_giderler WHERE gider_adi = ?", (gider_adi,)); gider = self.cursor.fetchone()
-        if gider: self.cursor.execute("UPDATE sabit_giderler SET tutar = ?, kategori_id = ? WHERE gider_adi = ?", (tutar, kategori_id, gider_adi))
-        else: self.cursor.execute("INSERT INTO sabit_giderler (gider_adi, tutar, kategori_id) VALUES (?, ?, ?)", (gider_adi, tutar, kategori_id))
+        self.cursor.execute("SELECT id FROM sabit_giderler WHERE gider_adi = %s", (gider_adi,)); gider = self.cursor.fetchone()
+        if gider: self.cursor.execute("UPDATE sabit_giderler SET tutar = %s, kategori_id = %s WHERE gider_adi = %s", (tutar, kategori_id, gider_adi))
+        else: self.cursor.execute("INSERT INTO sabit_giderler (gider_adi, tutar, kategori_id) VALUES (%s, %s, %s)", (gider_adi, tutar, kategori_id))
         self.conn.commit()
 
     # --- FİNANSAL HAREKETLER ---
     def finansal_hareket_ekle(self, tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id=None, odeme_yontemi="Nakit"):
-        self.cursor.execute('''INSERT INTO finansal_hareketler (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi)); self.conn.commit()
-        if gelir > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye + ? WHERE id = ?", (gelir, hesap_id))
-        elif gider > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye - ? WHERE id = ?", (gider, hesap_id))
+        self.cursor.execute('''INSERT INTO finansal_hareketler (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''', (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi)); self.conn.commit()
+        if gelir > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye + %s WHERE id = %s", (gelir, hesap_id))
+        elif gider > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye - %s WHERE id = %s", (gider, hesap_id))
         self.conn.commit()
         if gelir > 0 and musteri_id is not None: self.musteri_hesap_hareketi_ekle(musteri_id=musteri_id, tarih=tarih, aciklama=f"Tahsilat: {aciklama}", borc=0, alacak=gelir)
         
@@ -372,18 +405,19 @@ class Database:
         self.cursor.execute("SELECT f.id, f.tarih, f.aciklama, f.gelir, f.gider, k.ad, kb.hesap_adi, m.firma_adi, f.odeme_yontemi FROM finansal_hareketler f LEFT JOIN kategoriler k ON f.kategori_id = k.id LEFT JOIN kasa_banka kb ON f.hesap_id = kb.id LEFT JOIN musteriler m ON f.musteri_id = m.id ORDER BY f.tarih DESC, f.id DESC"); return self.cursor.fetchall()
         
     def hesap_hareketlerini_getir(self, hesap_id):
-        self.cursor.execute("SELECT tarih, aciklama, gelir, gider FROM finansal_hareketler WHERE hesap_id = ? ORDER BY tarih DESC, id DESC", (hesap_id,)); return self.cursor.fetchall()
+        self.cursor.execute("SELECT tarih, aciklama, gelir, gider FROM finansal_hareketler WHERE hesap_id = %s ORDER BY tarih DESC, id DESC", (hesap_id,)); return self.cursor.fetchall()
         
     # --- İŞ EMİRLERİ ---
     def is_emri_ekle(self, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, tarih=None, durum="Bekliyor"):
         if tarih is None:
             tarih = datetime.datetime.now().strftime('%Y-%m-%d')
         self.cursor.execute(
-            "INSERT INTO is_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO is_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id",
             (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih)
         )
+        new_id = self.cursor.fetchone()[0]
         self.conn.commit()
-        return self.cursor.lastrowid
+        return new_id
     def is_emirlerini_getir(self, arama_terimi=""):
         query = (
             "SELECT i.id, i.tarih, m.firma_adi, i.urun_niteligi, i.miktar_m2, i.durum "
@@ -391,31 +425,31 @@ class Database:
         )
         params = ()
         if arama_terimi:
-            query += " WHERE m.firma_adi LIKE ? OR i.urun_niteligi LIKE ?"
+            query += " WHERE m.firma_adi LIKE %s OR i.urun_niteligi LIKE %s"
             params = (f"%{arama_terimi}%", f"%{arama_terimi}%")
         query += " ORDER BY i.tarih DESC, i.id DESC"
         self.cursor.execute(query, params)
         return self.cursor.fetchall()
-    def is_emri_durum_guncelle(self, is_emri_id, yeni_durum): self.cursor.execute("UPDATE is_emirleri SET durum = ? WHERE id = ?", (yeni_durum, is_emri_id)); self.conn.commit()
+    def is_emri_durum_guncelle(self, is_emri_id, yeni_durum): self.cursor.execute("UPDATE is_emirleri SET durum = %s WHERE id = %s", (yeni_durum, is_emri_id)); self.conn.commit()
     def is_emri_getir_by_id(self, is_emri_id):
         self.cursor.execute(
             "SELECT id, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih, liste_dosyasi "
-            "FROM is_emirleri WHERE id = ?",
+            "FROM is_emirleri WHERE id = %s",
             (is_emri_id,),
         )
         return self.cursor.fetchone()
-    def is_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM is_emirleri WHERE musteri_id = ? ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
+    def is_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM is_emirleri WHERE musteri_id = %s ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
 
     def cam_listesi_ekle(self, is_emri_id, en, boy, m2, poz):
         self.cursor.execute(
-            "INSERT INTO cam_listeleri (is_emri_id, en, boy, m2, poz) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO cam_listeleri (is_emri_id, en, boy, m2, poz) VALUES (%s, %s, %s, %s, %s)",
             (is_emri_id, en, boy, m2, poz)
         )
         self.conn.commit()
 
     def cam_listesini_getir(self, is_emri_id):
         self.cursor.execute(
-            "SELECT en, boy, m2, poz FROM cam_listeleri WHERE is_emri_id = ?",
+            "SELECT en, boy, m2, poz FROM cam_listeleri WHERE is_emri_id = %s",
             (is_emri_id,)
         )
         return self.cursor.fetchall()
@@ -423,14 +457,14 @@ class Database:
     def cam_listesi_var_mi(self, is_emri_id):
         """Belirtilen iş emri için cam listesi olup olmadığını kontrol et"""
         self.cursor.execute(
-            "SELECT 1 FROM cam_listeleri WHERE is_emri_id = ? LIMIT 1",
+            "SELECT 1 FROM cam_listeleri WHERE is_emri_id = %s LIMIT 1",
             (is_emri_id,),
         )
         return self.cursor.fetchone() is not None
 
     def is_emri_liste_dosyasi_getir(self, is_emri_id):
         self.cursor.execute(
-            "SELECT liste_dosyasi FROM is_emirleri WHERE id = ?",
+            "SELECT liste_dosyasi FROM is_emirleri WHERE id = %s",
             (is_emri_id,),
         )
         row = self.cursor.fetchone()
@@ -438,7 +472,7 @@ class Database:
 
     def is_emri_liste_dosyasi_guncelle(self, is_emri_id, path):
         self.cursor.execute(
-            "UPDATE is_emirleri SET liste_dosyasi = ? WHERE id = ?",
+            "UPDATE is_emirleri SET liste_dosyasi = %s WHERE id = %s",
             (path, is_emri_id),
         )
         self.conn.commit()
@@ -447,7 +481,7 @@ class Database:
     def cek_ekle(self, cek_no, banka_adi, sube, tutar, vade_tarihi, kesideci, durum, aciklama, dosya_path):
         self.cursor.execute(
             """INSERT INTO cekler (cek_no, banka_adi, sube, tutar, vade_tarihi, kesideci, durum, aciklama, dosya_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (cek_no, banka_adi, sube, tutar, vade_tarihi, kesideci, durum, aciklama, dosya_path),
         )
         self.conn.commit()
@@ -459,7 +493,7 @@ class Database:
     def tapu_ekle(self, il, ilce, mahalle, ada_parsel, yuzolcumu, cinsi, imar_durumu, tahmini_deger, aciklama, dosya_path):
         self.cursor.execute(
             """INSERT INTO tapular (il, ilce, mahalle, ada_parsel, yuzolcumu, cinsi, imar_durumu, tahmini_deger, aciklama, dosya_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (il, ilce, mahalle, ada_parsel, yuzolcumu, cinsi, imar_durumu, tahmini_deger, aciklama, dosya_path),
         )
         self.conn.commit()
@@ -471,7 +505,7 @@ class Database:
     def arac_ekle(self, plaka, marka_model, tip, yil, ruhsat_sahibi, tahmini_deger, durum, aciklama, dosya_path):
         self.cursor.execute(
             """INSERT INTO araclar (plaka, marka_model, tip, yil, ruhsat_sahibi, tahmini_deger, durum, aciklama, dosya_path)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
             (plaka, marka_model, tip, yil, ruhsat_sahibi, tahmini_deger, durum, aciklama, dosya_path),
         )
         self.conn.commit()
@@ -485,7 +519,7 @@ class Database:
         if tarih is None:
             tarih = datetime.datetime.now().strftime('%Y-%m-%d')
         self.cursor.execute(
-            "INSERT INTO temper_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO temper_emirleri (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih) VALUES (%s, %s, %s, %s, %s, %s, %s)",
             (musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, durum, tarih)
         )
         self.conn.commit()
@@ -496,16 +530,16 @@ class Database:
         )
         params = ()
         if arama_terimi:
-            query += " WHERE m.firma_adi LIKE ? OR t.urun_niteligi LIKE ?"
+            query += " WHERE m.firma_adi LIKE %s OR t.urun_niteligi LIKE %s"
             params = (f"%{arama_terimi}%", f"%{arama_terimi}%")
         query += " ORDER BY t.tarih DESC, t.id DESC"
         self.cursor.execute(query, params)
         return self.cursor.fetchall()
-    def temper_emri_durum_guncelle(self, temper_emri_id, yeni_durum): self.cursor.execute("UPDATE temper_emirleri SET durum = ? WHERE id = ?", (yeni_durum, temper_emri_id)); self.conn.commit()
+    def temper_emri_durum_guncelle(self, temper_emri_id, yeni_durum): self.cursor.execute("UPDATE temper_emirleri SET durum = %s WHERE id = %s", (yeni_durum, temper_emri_id)); self.conn.commit()
     def temper_emri_getir_by_id(self, temper_emri_id):
-        self.cursor.execute("SELECT * FROM temper_emirleri WHERE id = ?", (temper_emri_id,))
+        self.cursor.execute("SELECT * FROM temper_emirleri WHERE id = %s", (temper_emri_id,))
         return self.cursor.fetchone()
-    def temper_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM temper_emirleri WHERE musteri_id = ? ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
+    def temper_emirlerini_getir_by_musteri_id(self, musteri_id): self.cursor.execute("SELECT id, tarih, urun_niteligi, miktar_m2, durum FROM temper_emirleri WHERE musteri_id = %s ORDER BY tarih DESC, id DESC", (musteri_id,)); return self.cursor.fetchall()
     
     # --- RAPORLAMA ---
     def rapor_verilerini_getir(self, yil, ay):
@@ -513,7 +547,7 @@ class Database:
         try: son_gun = (datetime.date(yil, ay + 1, 1) - datetime.timedelta(days=1)).day if ay < 12 else 31
         except ValueError: son_gun = 28
         bitis_tarih = f"{yil}-{ay:02d}-{son_gun}"
-        self.cursor.execute("SELECT SUM(gelir), SUM(gider) FROM finansal_hareketler WHERE tarih BETWEEN ? AND ?", (baslangic_tarih, bitis_tarih)); aylik_gelir, aylik_gider = self.cursor.fetchone()
+        self.cursor.execute("SELECT SUM(gelir), SUM(gider) FROM finansal_hareketler WHERE tarih BETWEEN %s AND %s", (baslangic_tarih, bitis_tarih)); aylik_gelir, aylik_gider = self.cursor.fetchone()
         self.cursor.execute("SELECT SUM(tutar) FROM sabit_giderler"); sabit_giderler_toplami = self.cursor.fetchone()[0]
         return {"aylik_gelir": aylik_gelir or 0, "aylik_degisken_gider": aylik_gider or 0, "toplam_sabit_gider": sabit_giderler_toplami or 0}
 
