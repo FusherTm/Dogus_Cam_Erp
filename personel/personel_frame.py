@@ -101,7 +101,7 @@ class PersonelFrame(ctk.CTkFrame):
 
         ctk.CTkLabel(form_frame, text="İzin Talep Formu", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=10)
         ctk.CTkLabel(form_frame, text="Personel:").pack(padx=20, pady=5, anchor="w")
-        self.personel_cb = ctk.CTkComboBox(form_frame, values=[])
+        self.personel_cb = ctk.CTkComboBox(form_frame, values=[], command=self.personel_cb_degisti)
         self.personel_cb.pack(padx=20, pady=5, fill="x")
 
         ctk.CTkLabel(form_frame, text="İzin Tipi:").pack(padx=20, pady=5, anchor="w")
@@ -119,6 +119,28 @@ class PersonelFrame(ctk.CTkFrame):
         ctk.CTkLabel(form_frame, text="Açıklama:").pack(padx=20, pady=5, anchor="w")
         self.aciklama_text = ctk.CTkTextbox(form_frame, height=80)
         self.aciklama_text.pack(padx=20, pady=5, fill="both", expand=True)
+
+        self.izin_ozet_frame = ctk.CTkFrame(form_frame)
+        self.izin_ozet_frame.pack(padx=20, pady=5, fill="x")
+        ctk.CTkLabel(
+            self.izin_ozet_frame,
+            text="Yıllık İzin Özeti",
+            font=ctk.CTkFont(weight="bold"),
+        ).pack(anchor="w", pady=(0, 5))
+        self.hak_edilen_label = ctk.CTkLabel(
+            self.izin_ozet_frame, text="Hak Edilen Yıllık İzin: -"
+        )
+        self.hak_edilen_label.pack(anchor="w")
+        self.kullanilan_label = ctk.CTkLabel(
+            self.izin_ozet_frame, text="Bu Yıl Kullanılan: -"
+        )
+        self.kullanilan_label.pack(anchor="w")
+        self.kalan_label = ctk.CTkLabel(
+            self.izin_ozet_frame,
+            text="Kalan İzin: -",
+            font=ctk.CTkFont(weight="bold"),
+        )
+        self.kalan_label.pack(anchor="w")
 
         btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         btn_frame.pack(pady=10, fill="x", padx=10)
@@ -220,8 +242,21 @@ class PersonelFrame(ctk.CTkFrame):
         self.personel_cb.configure(values=adlar)
         if adlar:
             self.personel_cb.set(adlar[0])
+            self.personel_cb_degisti(adlar[0])
         else:
             self.personel_cb.set("")
+
+    def personel_cb_degisti(self, secim):
+        pid = self.personel_map.get(secim)
+        if not pid:
+            self.hak_edilen_label.configure(text="Hak Edilen Yıllık İzin: -")
+            self.kullanilan_label.configure(text="Bu Yıl Kullanılan: -")
+            self.kalan_label.configure(text="Kalan İzin: -")
+            return
+        hak, kullanilan, kalan = self.db.izin_ozetini_getir(pid)
+        self.hak_edilen_label.configure(text=f"Hak Edilen Yıllık İzin: {hak} Gün")
+        self.kullanilan_label.configure(text=f"Bu Yıl Kullanılan: {kullanilan} Gün")
+        self.kalan_label.configure(text=f"Kalan İzin: {kalan} Gün")
 
     def izin_formu_temizle(self):
         self.izin_tipi_cb.set("")
