@@ -19,9 +19,15 @@ def get_db_connection():
 
 class Database:
     def __init__(self, db_name="erp_database.db"):
+        """Veritabanı bağlantısını başlatır ve tabloları oluşturur."""
         self.conn = get_db_connection()
+
         if self.conn is None:
-            return
+            # Eğer bağlantı kurulamadıysa, bir hata fırlat ve programın devam etmesini engelle.
+            raise ConnectionError(
+                "Veritabanı bağlantısı kurulamadı. Lütfen sunucu ve ağ ayarlarını kontrol edin."
+            )
+
         self.cursor = self.conn.cursor()
         self.tablolari_olustur()
 

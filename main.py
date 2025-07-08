@@ -119,5 +119,15 @@ class App(ctk.CTk):
 
 
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    try:
+        app = App()
+        app.mainloop()
+    except ConnectionError as e:
+        # Yukarıda fırlattığımız hatayı burada yakalıyoruz.
+        # Kullanıcıya bir hata penceresi göster.
+        import tkinter as tk
+        from tkinter import messagebox
+
+        root = tk.Tk()
+        root.withdraw()  # Ana pencereyi gizle
+        messagebox.showerror("Bağlantı Hatası", str(e))
