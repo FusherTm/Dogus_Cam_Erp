@@ -46,6 +46,18 @@ class Database:
                         id INTEGER PRIMARY KEY, personel_id INTEGER, odeme_tarihi TEXT,
                         donem TEXT, tutar REAL, FOREIGN KEY (personel_id) REFERENCES personel (id) ON DELETE CASCADE
                     )''')
+        c.execute('''CREATE TABLE IF NOT EXISTS Izinler (
+                        izin_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        personel_id INTEGER,
+                        izin_tipi TEXT,
+                        baslangic_tarihi TEXT,
+                        bitis_tarihi TEXT,
+                        gun_sayisi INTEGER,
+                        aciklama TEXT,
+                        durum TEXT DEFAULT 'Beklemede',
+                        talep_tarihi TEXT,
+                        FOREIGN KEY (personel_id) REFERENCES personel(id) ON DELETE CASCADE
+                    )''')
         c.execute('''CREATE TABLE IF NOT EXISTS kasa_banka (
                         id INTEGER PRIMARY KEY, hesap_adi TEXT UNIQUE NOT NULL,
                         hesap_tipi TEXT, bakiye REAL DEFAULT 0
@@ -255,6 +267,48 @@ class Database:
     def personel_sil(self, id): self.cursor.execute("DELETE FROM personel WHERE id=?", (id,)); self.conn.commit()
     def personel_getir_by_id(self, personel_id): self.cursor.execute("SELECT * FROM personel WHERE id=?", (personel_id,)); return self.cursor.fetchone()
     def tum_maas_toplamini_getir(self): self.cursor.execute("SELECT SUM(maas) FROM personel"); result = self.cursor.fetchone()[0]; return result if result is not None else 0
+
+    # --- İZİNLER ---
+    def izin_ekle(
+        self,
+        personel_id,
+        izin_tipi,
+        baslangic_tarihi,
+        bitis_tarihi,
+        gun_sayisi,
+        aciklama,
+        durum="Beklemede",
+        talep_tarihi=None,
+    ):
+        if talep_tarihi is None:
+            talep_tarihi = datetime.datetime.now().strftime("%Y-%m-%d")
+        self.cursor.execute(
+            """INSERT INTO Izinler (personel_id, izin_tipi, baslangic_tarihi, bitis_tarihi, gun_sayisi, aciklama, durum, talep_tarihi) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                personel_id,
+                izin_tipi,
+                baslangic_tarihi,
+                bitis_tarihi,
+                gun_sayisi,
+                aciklama,
+                durum,
+                talep_tarihi,
+            ),
+        )
+        self.conn.commit()
+
+    def izinleri_getir(self):
+        self.cursor.execute(
+            """SELECT i.izin_id, p.ad_soyad, i.izin_tipi, i.baslangic_tarihi, i.bitis_tarihi, i.gun_sayisi, i.durum FROM Izinler i JOIN personel p ON i.personel_id = p.id ORDER BY i.izin_id DESC"""
+        )
+        return self.cursor.fetchall()
+
+    def izin_durum_guncelle(self, izin_id, yeni_durum):
+        self.cursor.execute(
+            "UPDATE Izinler SET durum = ? WHERE izin_id = ?",
+            (yeni_durum, izin_id),
+        )
+        self.conn.commit()
 
     # --- KASA & BANKA & KATEGORİ ---
     def kasa_banka_ekle(self, hesap_adi, hesap_tipi, bakiye):

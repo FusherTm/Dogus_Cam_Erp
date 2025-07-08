@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
+import datetime
 from database import Database
 
 class PersonelFrame(ctk.CTkFrame):
@@ -9,16 +10,28 @@ class PersonelFrame(ctk.CTkFrame):
         self.app = app
         self.db = Database()
         self.selected_personel_id = None
-        
-        self.grid_columnconfigure(1, weight=1) # Liste sütunu genişlesin
-        self.grid_rowconfigure(0, weight=1) # Liste satırı genişlesin
+
+        self.tabview = ctk.CTkTabview(self)
+        self.tabview.pack(expand=True, fill="both", padx=10, pady=10)
+        self.tabview.add("Personel Bilgileri")
+        self.tabview.add("İzin Yönetimi")
+        self.personel_tab = self.tabview.tab("Personel Bilgileri")
+        self.izin_tab = self.tabview.tab("İzin Yönetimi")
+
+        self.personel_tab.grid_columnconfigure(1, weight=1)
+        self.personel_tab.grid_rowconfigure(0, weight=1)
+        self.izin_tab.grid_columnconfigure(1, weight=1)
+        self.izin_tab.grid_rowconfigure(0, weight=1)
 
         self.arayuzu_kur()
-        self.yenile_ve_yansit() # Başlangıçta verileri yükle ve toplamı yansıt
+        self.izin_arayuzu_kur()
+        self.yenile_ve_yansit()
+        self.personel_combobox_doldur()
+        self.izinleri_listele()
 
     def arayuzu_kur(self):
         # Sol Form Sütunu
-        form_frame = ctk.CTkFrame(self, width=300)
+        form_frame = ctk.CTkFrame(self.personel_tab, width=300)
         form_frame.grid(row=0, column=0, rowspan=2, padx=10, pady=10, sticky="ns")
         form_frame.grid_propagate(False)
 
@@ -51,7 +64,7 @@ class PersonelFrame(ctk.CTkFrame):
         ctk.CTkButton(form_frame, text="Formu Temizle", command=self.formu_temizle).pack(side="bottom", fill="x", padx=10, pady=10)
 
         # Sağ Liste Sütunu
-        list_frame = ctk.CTkFrame(self)
+        list_frame = ctk.CTkFrame(self.personel_tab)
         list_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
         list_frame.grid_rowconfigure(0, weight=1)
         list_frame.grid_columnconfigure(0, weight=1)
@@ -74,11 +87,60 @@ class PersonelFrame(ctk.CTkFrame):
         self.tree.bind("<<TreeviewSelect>>", self.personel_sec)
         
         # YENİ: Toplam Maaş Gösterge Paneli
-        toplam_maas_frame = ctk.CTkFrame(self)
+        toplam_maas_frame = ctk.CTkFrame(self.personel_tab)
         toplam_maas_frame.grid(row=1, column=0, padx=10, pady=(0,10), sticky="ew")
         ctk.CTkLabel(toplam_maas_frame, text="Aylık Toplam Maaş:", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left", padx=(20, 5), pady=10)
         self.toplam_maas_label = ctk.CTkLabel(toplam_maas_frame, text="0.00 ₺", font=ctk.CTkFont(size=14, weight="bold"), text_color="#2CC985")
         self.toplam_maas_label.pack(side="left", padx=5, pady=10)
+
+    def izin_arayuzu_kur(self):
+        # Sol panel - izin talep formu
+        form_frame = ctk.CTkFrame(self.izin_tab, width=300)
+        form_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ns")
+        form_frame.grid_propagate(False)
+
+        ctk.CTkLabel(form_frame, text="İzin Talep Formu", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=10)
+        ctk.CTkLabel(form_frame, text="Personel:").pack(padx=20, pady=5, anchor="w")
+        self.personel_cb = ctk.CTkComboBox(form_frame, values=[])
+        self.personel_cb.pack(padx=20, pady=5, fill="x")
+
+        ctk.CTkLabel(form_frame, text="İzin Tipi:").pack(padx=20, pady=5, anchor="w")
+        self.izin_tipi_cb = ctk.CTkComboBox(form_frame, values=["Yıllık İzin", "Raporlu", "Mazeret İzni", "Ücretsiz İzin"])
+        self.izin_tipi_cb.pack(padx=20, pady=5, fill="x")
+
+        ctk.CTkLabel(form_frame, text="Başlangıç Tarihi (YYYY-MM-DD)").pack(padx=20, pady=5, anchor="w")
+        self.baslangic_entry = DateEntry(form_frame, date_pattern='y-mm-dd')
+        self.baslangic_entry.pack(padx=20, pady=5, fill="x")
+
+        ctk.CTkLabel(form_frame, text="Bitiş Tarihi (YYYY-MM-DD)").pack(padx=20, pady=5, anchor="w")
+        self.bitis_entry = DateEntry(form_frame, date_pattern='y-mm-dd')
+        self.bitis_entry.pack(padx=20, pady=5, fill="x")
+
+        ctk.CTkLabel(form_frame, text="Açıklama:").pack(padx=20, pady=5, anchor="w")
+        self.aciklama_text = ctk.CTkTextbox(form_frame, height=80)
+        self.aciklama_text.pack(padx=20, pady=5, fill="both", expand=True)
+
+        btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        btn_frame.pack(pady=10, fill="x", padx=10)
+        ctk.CTkButton(btn_frame, text="İzin Talebi Oluştur", command=self.izin_talebi_olustur).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(btn_frame, text="Formu Temizle", command=self.izin_formu_temizle).pack(side="left", expand=True, padx=5)
+
+        # Sağ panel - izin listesi
+        list_frame = ctk.CTkFrame(self.izin_tab)
+        list_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        list_frame.grid_rowconfigure(0, weight=1)
+        list_frame.grid_columnconfigure(0, weight=1)
+
+        self.izin_tree = ttk.Treeview(list_frame, columns=("ID", "Ad", "Tip", "Başlangıç", "Bitiş", "Gün", "Durum"), show="headings")
+        self.izin_tree.pack(expand=True, fill="both", padx=10, pady=10)
+        for col in ("ID", "Ad", "Tip", "Başlangıç", "Bitiş", "Gün", "Durum"):
+            self.izin_tree.heading(col, text=col)
+        self.izin_tree.column("ID", width=50)
+
+        action_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
+        action_frame.pack(pady=(0,10))
+        ctk.CTkButton(action_frame, text="Seçili İzni Onayla", command=lambda: self.izin_durum_guncelle("Onaylandı")).pack(side="left", padx=5)
+        ctk.CTkButton(action_frame, text="Seçili İzni Reddet", command=lambda: self.izin_durum_guncelle("Reddedildi")).pack(side="left", padx=5)
 
     def personelleri_goster(self):
         for i in self.tree.get_children(): self.tree.delete(i)
@@ -147,3 +209,58 @@ class PersonelFrame(ctk.CTkFrame):
         self.db.sabit_gider_ekle_veya_guncelle("Toplam Personel Maaşları", toplam_maas)
         if hasattr(self.app, 'sabit_gider_frame'):
             self.app.sabit_gider_frame.sabit_giderleri_goster()
+
+    # --- İzin Yönetimi Fonksiyonları ---
+    def personel_combobox_doldur(self):
+        self.personel_map = {}
+        adlar = []
+        for p in self.db.personelleri_getir():
+            adlar.append(p[1])
+            self.personel_map[p[1]] = p[0]
+        self.personel_cb.configure(values=adlar)
+        if adlar:
+            self.personel_cb.set(adlar[0])
+        else:
+            self.personel_cb.set("")
+
+    def izin_formu_temizle(self):
+        self.izin_tipi_cb.set("")
+        self.aciklama_text.delete("1.0", "end")
+
+    def izin_talebi_olustur(self):
+        ad = self.personel_cb.get()
+        if ad not in self.personel_map:
+            return messagebox.showerror("Hata", "Geçerli bir personel seçiniz.")
+        pid = self.personel_map[ad]
+        izin_tipi = self.izin_tipi_cb.get()
+        baslangic = self.baslangic_entry.get_date().strftime("%Y-%m-%d")
+        bitis = self.bitis_entry.get_date().strftime("%Y-%m-%d")
+        gun_sayisi = (
+            datetime.datetime.strptime(bitis, "%Y-%m-%d")
+            - datetime.datetime.strptime(baslangic, "%Y-%m-%d")
+        ).days + 1
+        aciklama = self.aciklama_text.get("1.0", "end").strip()
+        self.db.izin_ekle(
+            pid,
+            izin_tipi,
+            baslangic,
+            bitis,
+            gun_sayisi,
+            aciklama,
+        )
+        messagebox.showinfo("Başarılı", "İzin talebi oluşturuldu.")
+        self.izin_formu_temizle()
+        self.izinleri_listele()
+
+    def izinleri_listele(self):
+        for i in self.izin_tree.get_children():
+            self.izin_tree.delete(i)
+        for row in self.db.izinleri_getir():
+            self.izin_tree.insert("", "end", values=row, iid=row[0])
+
+    def izin_durum_guncelle(self, yeni_durum):
+        secili = self.izin_tree.focus()
+        if not secili:
+            return messagebox.showerror("Hata", "Bir izin seçin.")
+        self.db.izin_durum_guncelle(secili, yeni_durum)
+        self.izinleri_listele()
