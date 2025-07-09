@@ -144,58 +144,45 @@ class FinansFrame(ctk.CTkFrame):
             self.show_history_button.configure(text='İşlem Geçmişini Gizle')
         
     def yeni_finansal_hareket_ekle(self):
-        tarih = self.tarih_entry.get_date().strftime('%Y-%m-%d'); aciklama = self.aciklama_entry.get()
-        fiyat_str = self.fiyat_entry.get().replace(',', '.'); tip = self.tip_menu.get()
-        secilen_kategori_ad = self.kategori_menu.get(); secilen_hesap_ad = self.hesap_menu.get(); odeme_yontemi = self.odeme_menu.get()
+        # Formdan verileri al
+        tarih = self.tarih_entry.get_date().strftime('%Y-%m-%d')
+        aciklama = self.aciklama_entry.get()
+        tutar_str = self.fiyat_entry.get()
+        islem_tipi = self.tip_menu.get()
 
-        if not fiyat_str:
-            return messagebox.showerror("Hata", "Fiyat alanı zorunludur.")
+        # İlişkili cari ID'sini al
+        secilen_cari_id = self.secili_cari_id
+
+        # Gerekli kontroller
         try:
-            miktar = float(fiyat_str)
-        except ValueError:
-            return messagebox.showerror("Hata", "Geçerli bir fiyat girin.")
-        if secilen_kategori_ad in ["Kategori Seçin", "Kategori Yok"]: return messagebox.showerror("Hata", "Kategori seçin.")
-        if secilen_hesap_ad in ["Hesap Bulunamadı", "Hesap Yok"]: return messagebox.showerror("Hata", "Hesap seçin.")
-        
-        kategori_id = next((k[0] for k in self.kategoriler if k[1] == secilen_kategori_ad), None)
-        hesap_id = next((h[0] for h in self.hesaplar if h[1] == secilen_hesap_ad), None)
-        
-        gelir = miktar if tip == 'Gelir' else 0
-        gider = miktar if tip == 'Gider' else 0
+            tutar = float(tutar_str)
+        except (ValueError, TypeError):
+            messagebox.showerror("Hata", "Lütfen geçerli bir tutar girin.")
+            return
 
-        secilen_id = self.secili_cari_id
+        borc = 0.0
+        alacak = 0.0
 
-        self.db.finansal_hareket_ekle(
-            tarih,
-            aciklama,
-            gelir,
-            gider,
-            kategori_id,
-            hesap_id,
-            secilen_id,
-            odeme_yontemi,
+        if islem_tipi == 'Gelir':
+            borc = tutar
+        elif islem_tipi in ['Gider', 'Tahsilat', 'Ödeme']:
+            alacak = tutar
+
+        basarili = self.db.finansal_hareket_ekle(
+            tarih=tarih,
+            aciklama=aciklama,
+            borc=borc,
+            alacak=alacak,
+            tip=islem_tipi,
+            cari_id=secilen_cari_id
         )
-        messagebox.showinfo("Başarılı", "Finansal hareket eklendi.")
-        
-        # Formu ve seçimi sıfırla
-        self.aciklama_entry.delete(0, 'end')
-        self.fiyat_entry.delete(0, 'end')
-        self.cari_entry.configure(state="normal")
-        self.cari_entry.delete(0, "end")
-        self.cari_entry.insert(0, "Seçim Yap (Opsiyonel)")
-        self.cari_entry.configure(state="disabled")
-        self.secili_cari_id = None
-        
-        self.yenile()
-        if hasattr(self.app, 'kasa_banka_frame'):
-            self.app.kasa_banka_frame.hesaplari_goster()
-        if secilen_id is not None:
-            if self.cari_tipi == "Müşteri" and hasattr(self.app, 'musteri_frame'):
-                self.app.musteri_frame.musterileri_goster()
-                self.app.musteri_frame.hesap_hareketlerini_goster(secilen_id)
-            elif self.cari_tipi == "Tedarikçi" and hasattr(self.app, 'tedarikci_frame'):
-                self.app.tedarikci_frame.musterileri_goster()
-                self.app.tedarikci_frame.hesap_hareketlerini_goster(secilen_id)
+
+        if basarili:
+            messagebox.showinfo("Başarılı", "Finansal hareket başarıyla kaydedildi.")
+            self.formu_temizle()
+            self.liste_yenile()
+        else:
+            messagebox.showerror("Hata", "Kayıt sırasında bir sorun oluştu.")
         
     def finansal_hareketleri_goster(self, filtre=""):
         if not hasattr(self, "tree"):
@@ -227,4 +214,25 @@ class FinansFrame(ctk.CTkFrame):
             if filtre and filtre.lower() not in " ".join(str(x).lower() for x in row):
                 continue
             self.tree.insert("", "end", values=row)
+
+    def formu_temizle(self):
+        self.aciklama_entry.delete(0, "end")
+        self.fiyat_entry.delete(0, "end")
+        self.cari_entry.configure(state="normal")
+        self.cari_entry.delete(0, "end")
+        self.cari_entry.insert(0, "Seçim Yap (Opsiyonel)")
+        self.cari_entry.configure(state="disabled")
+        self.secili_cari_id = None
+
+    def liste_yenile(self):
+        self.yenile()
+        if hasattr(self.app, "kasa_banka_frame"):
+            self.app.kasa_banka_frame.hesaplari_goster()
+        if self.secili_cari_id is not None:
+            if self.cari_tipi == "Müşteri" and hasattr(self.app, "musteri_frame"):
+                self.app.musteri_frame.musterileri_goster()
+                self.app.musteri_frame.hesap_hareketlerini_goster(self.secili_cari_id)
+            elif self.cari_tipi == "Tedarikçi" and hasattr(self.app, "tedarikci_frame"):
+                self.app.tedarikci_frame.musterileri_goster()
+                self.app.tedarikci_frame.hesap_hareketlerini_goster(self.secili_cari_id)
 

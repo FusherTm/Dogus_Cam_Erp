@@ -483,12 +483,25 @@ class Database:
         self.conn.commit()
 
     # --- FİNANSAL HAREKETLER ---
-    def finansal_hareket_ekle(self, tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id=None, odeme_yontemi="Nakit"):
-        self.cursor.execute('''INSERT INTO finansal_hareketler (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)''', (tarih, aciklama, gelir, gider, kategori_id, hesap_id, musteri_id, odeme_yontemi)); self.conn.commit()
-        if gelir > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye + %s WHERE id = %s", (gelir, hesap_id))
-        elif gider > 0: self.cursor.execute("UPDATE kasa_banka SET bakiye = bakiye - %s WHERE id = %s", (gider, hesap_id))
-        self.conn.commit()
-        if gelir > 0 and musteri_id is not None: self.musteri_hesap_hareketi_ekle(musteri_id=musteri_id, tarih=tarih, aciklama=f"Tahsilat: {aciklama}", borc=0, alacak=gelir)
+    def finansal_hareket_ekle(self, tarih, aciklama, borc, alacak, tip, cari_id, aktif_mi=True):
+        """Yeni ve modernize edilmiş finansal_hareketler tablosuna kayıt ekler."""
+        cursor = None
+        try:
+            cursor = self.conn.cursor()
+            sql = """
+            INSERT INTO finansal_hareketler (tarih, aciklama, borc, alacak, tip, cari_id, aktif_mi)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(sql, (tarih, aciklama, borc, alacak, tip, cari_id, aktif_mi))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            print(f"Finansal hareket eklenirken hata: {e}")
+            self.conn.rollback()
+            return False
+        finally:
+            if cursor:
+                cursor.close()
         
     def finansal_hareketleri_getir(self, cari_id):
         """Verilen cari ID'sine ait tüm aktif finansal hareketleri çeker."""
