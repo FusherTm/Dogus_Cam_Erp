@@ -1,5 +1,6 @@
 import psycopg2
 import datetime
+from decimal import Decimal
 
 
 def get_db_connection():
@@ -324,10 +325,12 @@ class Database:
         self.cursor.execute("SELECT bakiye FROM Cariler WHERE id=%s", (musteri_id,))
         son_bakiye_tuple = self.cursor.fetchone()
         son_bakiye = son_bakiye_tuple[0] if son_bakiye_tuple else 0
-        yeni_bakiye = son_bakiye + borc - alacak
+        borc_decimal = Decimal(str(borc))
+        alacak_decimal = Decimal(str(alacak))
+        yeni_bakiye = son_bakiye + borc_decimal - alacak_decimal
         self.cursor.execute(
             '''INSERT INTO musteri_hesap_hareketleri (musteri_id, tarih, aciklama, borc, alacak, bakiye, fatura_id) VALUES (%s, %s, %s, %s, %s, %s, %s)''',
-            (musteri_id, tarih, aciklama, borc, alacak, yeni_bakiye, fatura_id),
+            (musteri_id, tarih, aciklama, borc_decimal, alacak_decimal, yeni_bakiye, fatura_id),
         )
         self.cursor.execute("UPDATE Cariler SET bakiye = %s WHERE id = %s", (yeni_bakiye, musteri_id))
         self.conn.commit()
