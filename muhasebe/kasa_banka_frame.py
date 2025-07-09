@@ -32,8 +32,12 @@ class KasaBankaFrame(ctk.CTkFrame):
         self.bakiye_entry = ctk.CTkEntry(form_frame, placeholder_text="0.00")
         self.bakiye_entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
 
-        self.ekle_button = ctk.CTkButton(form_frame, text="Yeni Hesap Ekle", command=self.yeni_hesap_ekle)
-        self.ekle_button.grid(row=3, column=1, pady=10, sticky="ew")
+        button_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        button_frame.grid(row=3, column=0, columnspan=2, pady=10, sticky="ew")
+        ctk.CTkButton(button_frame, text="Kaydet", command=self.yeni_hesap_ekle).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(button_frame, text="Güncelle", command=self.hesap_guncelle).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(button_frame, text="Sil", command=self.hesap_sil, fg_color="#E54E55", hover_color="#C4424A").pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(button_frame, text="Temizle", command=self.temizle).pack(side="left", expand=True, padx=5)
 
         list_frame = ctk.CTkFrame(self)
         list_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
@@ -83,10 +87,16 @@ class KasaBankaFrame(ctk.CTkFrame):
         self.ekstre_button.configure(state="disabled") # Liste yenilendiğinde butonu pasif yap
         self.selected_hesap_id = None
 
-    def hesap_secildi(self, event):
+    def hesap_secildi(self, event=None):
         secili = self.tree.focus()
         if secili:
             self.selected_hesap_id = secili
+            hesap = self.db.kasa_banka_getir_by_id(secili)
+            if hesap:
+                self.temizle(clear_selection=False)
+                self.hesap_adi_entry.insert(0, hesap[1])
+                self.hesap_tipi_menu.set(hesap[2])
+                self.bakiye_entry.insert(0, f"{hesap[3]:.2f}")
             self.ekstre_button.configure(state="normal")
         else:
             self.selected_hesap_id = None
@@ -105,8 +115,46 @@ class KasaBankaFrame(ctk.CTkFrame):
             if hasattr(self.app, 'finans_frame'): self.app.finans_frame.yenile()
         else: messagebox.showerror("Hata", "Bu hesap adı zaten mevcut.")
 
-    def temizle(self):
-        self.hesap_adi_entry.delete(0, 'end'); self.bakiye_entry.delete(0, 'end'); self.bakiye_entry.insert(0, "0.00")
+    def temizle(self, clear_selection=True):
+        self.hesap_adi_entry.delete(0, 'end')
+        self.bakiye_entry.delete(0, 'end')
+        self.bakiye_entry.insert(0, "0.00")
+        if clear_selection:
+            self.selected_hesap_id = None
+            if self.tree.selection():
+                self.tree.selection_remove(self.tree.selection()[0])
+            self.ekstre_button.configure(state="disabled")
+
+    def hesap_guncelle(self):
+        if not self.selected_hesap_id:
+            return messagebox.showerror("Hata", "Güncellemek için bir hesap seçiniz.")
+        hesap_adi = self.hesap_adi_entry.get()
+        hesap_tipi = self.hesap_tipi_menu.get()
+        bakiye_str = self.bakiye_entry.get() or "0"
+        if not hesap_adi:
+            return messagebox.showerror("Hata", "Hesap adı boş olamaz.")
+        try:
+            bakiye = float(bakiye_str.replace(',', '.'))
+        except ValueError:
+            return messagebox.showerror("Hata", "Lütfen geçerli bir bakiye girin.")
+        self.db.kasa_banka_guncelle(self.selected_hesap_id, hesap_adi, hesap_tipi, bakiye)
+        messagebox.showinfo("Başarılı", "Hesap güncellendi.")
+        self.hesaplari_goster()
+        self.temizle()
+        if hasattr(self.app, 'finans_frame'):
+            self.app.finans_frame.yenile()
+
+    def hesap_sil(self):
+        if not self.selected_hesap_id:
+            return messagebox.showerror("Hata", "Silmek için bir hesap seçiniz.")
+        if not messagebox.askyesno("Onay", "Seçili hesabı silmek istediğinizden emin misiniz?"):
+            return
+        self.db.kasa_banka_sil(self.selected_hesap_id)
+        messagebox.showinfo("Başarılı", "Hesap silindi.")
+        self.hesaplari_goster()
+        self.temizle()
+        if hasattr(self.app, 'finans_frame'):
+            self.app.finans_frame.yenile()
 
     def hesap_hareketleri_penceresi_ac(self):
         if not self.selected_hesap_id: return
