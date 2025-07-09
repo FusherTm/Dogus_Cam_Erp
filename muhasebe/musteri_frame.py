@@ -154,6 +154,8 @@ class MusteriFrame(ctk.CTkFrame):
         selected_item = self.musteri_tree.focus();
         if not selected_item: return
         self.selected_musteri_id = selected_item
+        if hasattr(self.app, 'finans_frame'):
+            self.app.finans_frame.secilen_cari_id = self.selected_musteri_id
         musteri = self.db.musteri_getir_by_id(self.selected_musteri_id)
         if musteri:
             self.formu_temizle(clear_selection=False)
