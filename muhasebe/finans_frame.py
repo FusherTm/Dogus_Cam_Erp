@@ -36,7 +36,9 @@ class FinansFrame(ctk.CTkFrame):
         ctk.CTkLabel(form_frame, text="Fiyat:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
         self.fiyat_entry = ctk.CTkEntry(form_frame, placeholder_text="Örn: 150.00"); self.fiyat_entry.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(form_frame, text="İşlem Tipi:").grid(row=4, column=0, padx=5, pady=5, sticky="w")
-        self.tip_menu = ctk.CTkOptionMenu(form_frame, values=['Gelir', 'Gider']); self.tip_menu.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
+        self.tip_menu = ctk.CTkOptionMenu(form_frame, values=['Gelir', 'Gider'], command=self._tip_degisti)
+        self.tip_menu.grid(row=4, column=1, padx=5, pady=5, sticky="ew")
+        self._tip_degisti(self.tip_menu.get())
         ctk.CTkLabel(form_frame, text="Kategori:").grid(row=5, column=0, padx=5, pady=5, sticky="w")
         self.kategori_menu = ctk.CTkOptionMenu(form_frame, values=["Kategori Yok"]); self.kategori_menu.grid(row=5, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkLabel(form_frame, text="Hesap:").grid(row=6, column=0, padx=5, pady=5, sticky="w")
@@ -55,12 +57,8 @@ class FinansFrame(ctk.CTkFrame):
         self.odeme_menu.grid(row=7, column=1, padx=5, pady=5, sticky="ew")
 
         ctk.CTkLabel(form_frame, text="İlişkili Cari:").grid(row=8, column=0, padx=5, pady=5, sticky="w")
-        cari_secim_frame = ctk.CTkFrame(form_frame, fg_color="transparent"); cari_secim_frame.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
-        cari_secim_frame.grid_columnconfigure(0, weight=1)
-        self.musteri_entry = ctk.CTkEntry(cari_secim_frame, placeholder_text="Cari seçmek için butonu kullanın ->")
-        self.musteri_entry.configure(state="disabled")
-        self.musteri_entry.grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(cari_secim_frame, text="...", width=40, command=self.cari_sec_penceresi_ac).grid(row=0, column=1, padx=(5,0))
+        self.cari_menu = ctk.CTkOptionMenu(form_frame, values=['Seçim Yap (Opsiyonel)'])
+        self.cari_menu.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
 
         ctk.CTkButton(form_frame, text="Kaydet", command=self.yeni_finansal_hareket_ekle).grid(row=9, column=0, columnspan=2, pady=10, sticky="ew")
         self.show_history_button = ctk.CTkButton(form_frame, text="İşlem Geçmişini Göster", command=self.toggle_history_tab)
@@ -83,6 +81,15 @@ class FinansFrame(ctk.CTkFrame):
         self.hesap_menu.configure(values=hesap_degerleri)
         if self.hesaplar: self.hesap_menu.set(hesap_degerleri[0])
         else: self.hesap_menu.set("Hesap Bulunamadı")
+
+    def _tip_degisti(self, secim):
+        if secim == 'Gider':
+            self.cari_list = self.db.tedarikcileri_getir()
+        else:
+            self.cari_list = self.db.musterileri_getir()
+        values = ['Seçim Yap (Opsiyonel)'] + [c[1] for c in self.cari_list]
+        self.cari_menu.configure(values=values)
+        self.cari_menu.set('Seçim Yap (Opsiyonel)')
 
     def toggle_history_tab(self):
         if hasattr(self, 'history_tab'):
@@ -139,11 +146,29 @@ class FinansFrame(ctk.CTkFrame):
         gelir = miktar if tip == 'Gelir' else 0
         gider = miktar if tip == 'Gider' else 0
 
-        self.db.finansal_hareket_ekle(tarih, aciklama, gelir, gider, kategori_id, hesap_id, self.secili_musteri_id, odeme_yontemi)
+        secilen_cari = self.cari_menu.get()
+        if secilen_cari == 'Seçim Yap (Opsiyonel)' or not getattr(self, 'cari_list', None):
+            self.secili_musteri_id = None
+        else:
+            self.secili_musteri_id = next((c[0] for c in self.cari_list if c[1] == secilen_cari), None)
+
+        self.db.finansal_hareket_ekle(
+            tarih,
+            aciklama,
+            gelir,
+            gider,
+            kategori_id,
+            hesap_id,
+            self.secili_musteri_id,
+            odeme_yontemi,
+        )
         messagebox.showinfo("Başarılı", "Finansal hareket eklendi.")
         
         # Formu ve seçimi sıfırla
-        self.aciklama_entry.delete(0, 'end'); self.fiyat_entry.delete(0, 'end'); self.musteri_entry.configure(state="normal"); self.musteri_entry.delete(0, 'end'); self.musteri_entry.configure(state="disabled"); self.secili_musteri_id = None
+        self.aciklama_entry.delete(0, 'end')
+        self.fiyat_entry.delete(0, 'end')
+        self.cari_menu.set('Seçim Yap (Opsiyonel)')
+        self.secili_musteri_id = None
         
         self.yenile()
         if hasattr(self.app, 'kasa_banka_frame'): self.app.kasa_banka_frame.hesaplari_goster()
@@ -173,50 +198,3 @@ class FinansFrame(ctk.CTkFrame):
                 continue
             self.tree.insert("", "end", values=row)
 
-    def cari_sec_penceresi_ac(self):
-        win = ctk.CTkToplevel(self)
-        win.title("Cari Hesap Seç")
-        win.geometry("700x500")
-        
-        arama_entry = ctk.CTkEntry(win, placeholder_text="Aramak için firma adı yazın...")
-        arama_entry.pack(fill="x", padx=10, pady=10)
-        
-        tree_frame = ctk.CTkFrame(win); tree_frame.pack(expand=True, fill="both", padx=10, pady=10)
-        tree = ttk.Treeview(tree_frame, columns=("ID", "Firma Adı", "Yetkili", "Bakiye"), show="headings")
-        tree.pack(side="left", expand=True, fill="both")
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview); vsb.pack(side="right", fill="y")
-        tree.configure(yscrollcommand=vsb.set)
-        for col in tree['columns']: tree.heading(col, text=col)
-        tree.column("ID", width=40); tree.column("Bakiye", anchor="e")
-
-        def listeyi_doldur(arama=""):
-            for i in tree.get_children(): tree.delete(i)
-            for musteri in self.db.musterileri_getir(arama_terimi=arama):
-                bakiye_str = f"{musteri[6]:.2f} ₺"
-                tree.insert("", "end", values=(musteri[0], musteri[1], musteri[2], bakiye_str), iid=musteri[0])
-        
-        def secim_yap(event=None):
-            secili_id = tree.focus()
-            if not secili_id: return
-            item = tree.item(secili_id, 'values')
-            self.secili_musteri_id = item[0]
-            self.musteri_entry.configure(state="normal")
-            self.musteri_entry.delete(0, 'end')
-            self.musteri_entry.insert(0, item[1])
-            self.musteri_entry.configure(state="disabled")
-            win.destroy()
-            
-        def secimi_temizle():
-            self.secili_musteri_id = None
-            self.musteri_entry.configure(state="normal")
-            self.musteri_entry.delete(0, 'end')
-            self.musteri_entry.configure(state="disabled")
-            win.destroy()
-
-        arama_entry.bind("<KeyRelease>", lambda e: listeyi_doldur(arama_entry.get()))
-        tree.bind("<Double-1>", secim_yap)
-        ctk.CTkButton(win, text="Seçimi Temizle", command=secimi_temizle, fg_color="red").pack(side="right", padx=10, pady=10)
-        ctk.CTkButton(win, text="Seç ve Kapat", command=secim_yap).pack(side="right", padx=10, pady=10)
-        
-        listeyi_doldur()
-        win.transient(self); win.grab_set()

@@ -6,6 +6,7 @@ import sys
 from muhasebe.finans_frame import FinansFrame
 from muhasebe.kasa_banka_frame import KasaBankaFrame
 from muhasebe.musteri_frame import MusteriFrame
+from muhasebe.tedarikci_frame import TedarikciFrame
 from muhasebe.rapor_frame import RaporFrame
 from muhasebe.sabit_gider_frame import SabitGiderFrame
 from faturalar.fatura_frame import FaturaFrame
@@ -79,10 +80,16 @@ class App(ctk.CTk):
         # Muhasebe Sekmesi
         self.muhasebe_tab_view = ctk.CTkTabview(self.tab_view.tab("Muhasebe"), corner_radius=6)
         self.muhasebe_tab_view.pack(expand=True, fill="both", padx=5, pady=5)
-        self.muhasebe_tab_view.add("Gelir/Gider"); self.muhasebe_tab_view.add("Kasa ve Banka"); self.muhasebe_tab_view.add("Müşteri Yönetimi"); self.muhasebe_tab_view.add("Sabit Giderler"); self.muhasebe_tab_view.add("Aylık Rapor")
+        self.muhasebe_tab_view.add("Gelir/Gider");
+        self.muhasebe_tab_view.add("Kasa ve Banka");
+        self.muhasebe_tab_view.add("Müşteri Yönetimi");
+        self.muhasebe_tab_view.add("Tedarikçi Yönetimi");
+        self.muhasebe_tab_view.add("Sabit Giderler");
+        self.muhasebe_tab_view.add("Aylık Rapor")
         self.finans_frame = FinansFrame(self.muhasebe_tab_view.tab("Gelir/Gider"), self); self.finans_frame.pack(expand=True, fill="both")
         self.kasa_banka_frame = KasaBankaFrame(self.muhasebe_tab_view.tab("Kasa ve Banka"), self); self.kasa_banka_frame.pack(expand=True, fill="both")
         self.musteri_frame = MusteriFrame(self.muhasebe_tab_view.tab("Müşteri Yönetimi"), self); self.musteri_frame.pack(expand=True, fill="both")
+        self.tedarikci_frame = TedarikciFrame(self.muhasebe_tab_view.tab("Tedarikçi Yönetimi"), self); self.tedarikci_frame.pack(expand=True, fill="both")
         self.sabit_gider_frame = SabitGiderFrame(self.muhasebe_tab_view.tab("Sabit Giderler"), self); self.sabit_gider_frame.pack(expand=True, fill="both")
         self.rapor_frame = RaporFrame(self.muhasebe_tab_view.tab("Aylık Rapor"), self); self.rapor_frame.pack(expand=True, fill="both")
 
