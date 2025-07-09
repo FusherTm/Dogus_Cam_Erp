@@ -203,19 +203,28 @@ class FinansFrame(ctk.CTkFrame):
         for i in self.tree.get_children():
             self.tree.delete(i)
 
-        self.tree['columns'] = ("Tarih", "Açıklama", "Fiyat", "Tip", "Kategori", "Hesap", "Cari", "Ödeme Yöntemi")
-        for col in self.tree['columns']:
+        self.tree["columns"] = ("Tarih", "Açıklama", "Borç", "Alacak", "Tip")
+        for col in self.tree["columns"]:
             self.tree.heading(col, text=col)
-        self.tree.column("Fiyat", anchor="e", width=80)
+        for col in ["Borç", "Alacak"]:
+            self.tree.column(col, anchor="e", width=80)
         self.tree.column("Tip", width=60)
-        self.tree.column("Ödeme Yöntemi", width=110)
         self.tree.column("#0", width=0, stretch="NO")
 
-        for kayit in self.db.finansal_hareketleri_getir():
-            tip = 'Gelir' if kayit[3] and kayit[3] > 0 else 'Gider'
-            fiyat = kayit[3] if tip == 'Gelir' else kayit[4]
-            row = (kayit[1], kayit[2], f"{fiyat:.2f} ₺", tip, kayit[5] or "", kayit[6] or "", kayit[7] or "", kayit[8] or "")
-            if filtre and filtre.lower() not in ' '.join(str(x).lower() for x in row):
+        if self.secilen_cari_id is None:
+            messagebox.showwarning("Uyarı", "Lütfen önce bir cari hesap seçin.")
+            return
+
+        hareketler = self.db.finansal_hareketleri_getir(self.secilen_cari_id)
+        for kayit in hareketler:
+            row = (
+                kayit[0],
+                kayit[1],
+                f"{kayit[2]:.2f}" if kayit[2] else "",
+                f"{kayit[3]:.2f}" if kayit[3] else "",
+                kayit[4],
+            )
+            if filtre and filtre.lower() not in " ".join(str(x).lower() for x in row):
                 continue
             self.tree.insert("", "end", values=row)
 

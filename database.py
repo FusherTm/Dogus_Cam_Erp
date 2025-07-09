@@ -490,8 +490,31 @@ class Database:
         self.conn.commit()
         if gelir > 0 and musteri_id is not None: self.musteri_hesap_hareketi_ekle(musteri_id=musteri_id, tarih=tarih, aciklama=f"Tahsilat: {aciklama}", borc=0, alacak=gelir)
         
-    def finansal_hareketleri_getir(self):
-        self.cursor.execute("SELECT f.id, f.tarih, f.aciklama, f.gelir, f.gider, k.ad, kb.hesap_adi, m.firma_adi, f.odeme_yontemi FROM finansal_hareketler f LEFT JOIN kategoriler k ON f.kategori_id = k.id LEFT JOIN kasa_banka kb ON f.hesap_id = kb.id LEFT JOIN Cariler m ON f.musteri_id = m.id ORDER BY f.tarih DESC, f.id DESC"); return self.cursor.fetchall()
+    def finansal_hareketleri_getir(self, cari_id):
+        """Verilen cari ID'sine ait tüm aktif finansal hareketleri çeker."""
+        if not self.conn:
+            return []
+
+        hareketler = []
+        cursor = None
+        try:
+            cursor = self.conn.cursor()
+            sql = (
+                """
+            SELECT tarih, aciklama, borc, alacak, tip
+            FROM finansal_hareketler
+            WHERE cari_id = %s AND aktif_mi = TRUE
+            ORDER BY tarih DESC, id DESC
+            """
+            )
+            cursor.execute(sql, (cari_id,))
+            hareketler = cursor.fetchall()
+        except Exception as e:
+            print(f"Finansal hareketler getirilirken hata: {e}")
+        finally:
+            if cursor:
+                cursor.close()
+        return hareketler
         
     def hesap_hareketlerini_getir(self, hesap_id):
         self.cursor.execute("SELECT tarih, aciklama, gelir, gider FROM finansal_hareketler WHERE hesap_id = %s ORDER BY tarih DESC, id DESC", (hesap_id,)); return self.cursor.fetchall()
