@@ -13,7 +13,8 @@ class FinansFrame(ctk.CTkFrame):
         self.kategoriler = []
         self.hesaplar = []
         self.musteriler = []
-        self.secili_musteri_id = None # Seçilen müşterinin ID'sini tutar
+        self.secili_cari_id = None  # Seçilen carinin ID'si
+        self.cari_tipi = "Müşteri"
         
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -57,8 +58,14 @@ class FinansFrame(ctk.CTkFrame):
         self.odeme_menu.grid(row=7, column=1, padx=5, pady=5, sticky="ew")
 
         ctk.CTkLabel(form_frame, text="İlişkili Cari:").grid(row=8, column=0, padx=5, pady=5, sticky="w")
-        self.cari_menu = ctk.CTkOptionMenu(form_frame, values=['Seçim Yap (Opsiyonel)'])
-        self.cari_menu.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
+        cari_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        cari_frame.grid(row=8, column=1, padx=5, pady=5, sticky="ew")
+        cari_frame.grid_columnconfigure(0, weight=1)
+        self.cari_entry = ctk.CTkEntry(cari_frame)
+        self.cari_entry.insert(0, "Seçim Yap (Opsiyonel)")
+        self.cari_entry.configure(state="disabled")
+        self.cari_entry.grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(cari_frame, text="...", width=40, command=self.cari_ara).grid(row=0, column=1, padx=(5,0))
 
         ctk.CTkButton(form_frame, text="Kaydet", command=self.yeni_finansal_hareket_ekle).grid(row=9, column=0, columnspan=2, pady=10, sticky="ew")
         self.show_history_button = ctk.CTkButton(form_frame, text="İşlem Geçmişini Göster", command=self.toggle_history_tab)
@@ -83,13 +90,23 @@ class FinansFrame(ctk.CTkFrame):
         else: self.hesap_menu.set("Hesap Bulunamadı")
 
     def _tip_degisti(self, secim):
-        if secim == 'Gider':
-            self.cari_list = self.db.tedarikcileri_getir()
-        else:
-            self.cari_list = self.db.musterileri_getir()
-        values = ['Seçim Yap (Opsiyonel)'] + [c[1] for c in self.cari_list]
-        self.cari_menu.configure(values=values)
-        self.cari_menu.set('Seçim Yap (Opsiyonel)')
+        self.cari_tipi = 'Tedarikçi' if secim == 'Gider' else 'Müşteri'
+        self.secili_cari_id = None
+        if hasattr(self, 'cari_entry'):
+            self.cari_entry.configure(state="normal")
+            self.cari_entry.delete(0, 'end')
+            self.cari_entry.insert(0, "Seçim Yap (Opsiyonel)")
+            self.cari_entry.configure(state="disabled")
+
+    def cari_ara(self):
+        from .cari_arama_penceresi import CariAramaPenceresi
+        def callback(cid, ad):
+            self.secili_cari_id = cid
+            self.cari_entry.configure(state="normal")
+            self.cari_entry.delete(0, "end")
+            self.cari_entry.insert(0, ad)
+            self.cari_entry.configure(state="disabled")
+        CariAramaPenceresi(self, self.cari_tipi, callback)
 
     def toggle_history_tab(self):
         if hasattr(self, 'history_tab'):
@@ -146,11 +163,7 @@ class FinansFrame(ctk.CTkFrame):
         gelir = miktar if tip == 'Gelir' else 0
         gider = miktar if tip == 'Gider' else 0
 
-        secilen_cari = self.cari_menu.get()
-        if secilen_cari == 'Seçim Yap (Opsiyonel)' or not getattr(self, 'cari_list', None):
-            self.secili_musteri_id = None
-        else:
-            self.secili_musteri_id = next((c[0] for c in self.cari_list if c[1] == secilen_cari), None)
+        secilen_id = self.secili_cari_id
 
         self.db.finansal_hareket_ekle(
             tarih,
@@ -159,7 +172,7 @@ class FinansFrame(ctk.CTkFrame):
             gider,
             kategori_id,
             hesap_id,
-            self.secili_musteri_id,
+            secilen_id,
             odeme_yontemi,
         )
         messagebox.showinfo("Başarılı", "Finansal hareket eklendi.")
@@ -167,14 +180,22 @@ class FinansFrame(ctk.CTkFrame):
         # Formu ve seçimi sıfırla
         self.aciklama_entry.delete(0, 'end')
         self.fiyat_entry.delete(0, 'end')
-        self.cari_menu.set('Seçim Yap (Opsiyonel)')
-        self.secili_musteri_id = None
+        self.cari_entry.configure(state="normal")
+        self.cari_entry.delete(0, "end")
+        self.cari_entry.insert(0, "Seçim Yap (Opsiyonel)")
+        self.cari_entry.configure(state="disabled")
+        self.secili_cari_id = None
         
         self.yenile()
-        if hasattr(self.app, 'kasa_banka_frame'): self.app.kasa_banka_frame.hesaplari_goster()
-        if hasattr(self.app, 'musteri_frame') and self.secili_musteri_id is not None: 
-            self.app.musteri_frame.musterileri_goster()
-            self.app.musteri_frame.hesap_hareketlerini_goster(self.secili_musteri_id)
+        if hasattr(self.app, 'kasa_banka_frame'):
+            self.app.kasa_banka_frame.hesaplari_goster()
+        if secilen_id is not None:
+            if self.cari_tipi == "Müşteri" and hasattr(self.app, 'musteri_frame'):
+                self.app.musteri_frame.musterileri_goster()
+                self.app.musteri_frame.hesap_hareketlerini_goster(secilen_id)
+            elif self.cari_tipi == "Tedarikçi" and hasattr(self.app, 'tedarikci_frame'):
+                self.app.tedarikci_frame.musterileri_goster()
+                self.app.tedarikci_frame.hesap_hareketlerini_goster(secilen_id)
         
     def finansal_hareketleri_goster(self, filtre=""):
         if not hasattr(self, "tree"):
