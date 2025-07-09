@@ -90,7 +90,8 @@ class Database:
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS kasa_banka (
                         id SERIAL PRIMARY KEY, hesap_adi TEXT UNIQUE NOT NULL,
-                        hesap_tipi TEXT, bakiye REAL DEFAULT 0
+                        hesap_tipi TEXT, bakiye REAL DEFAULT 0,
+                        aktif_mi BOOLEAN DEFAULT TRUE
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS kategoriler (
                         id SERIAL PRIMARY KEY, ad TEXT UNIQUE NOT NULL
@@ -182,7 +183,8 @@ class Database:
         for table, cols in {
             'is_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL'), ('liste_dosyasi', 'TEXT')],
             'temper_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
-            'finansal_hareketler': [('odeme_yontemi', "TEXT DEFAULT 'Nakit'")]
+            'finansal_hareketler': [('odeme_yontemi', "TEXT DEFAULT 'Nakit'")],
+            'kasa_banka': [('aktif_mi', 'BOOLEAN DEFAULT TRUE')]
         }.items():
             self.cursor.execute(
                 "SELECT column_name FROM information_schema.columns WHERE table_name = %s",
@@ -437,8 +439,23 @@ class Database:
             self.cursor.execute("INSERT INTO kasa_banka (hesap_adi, hesap_tipi, bakiye) VALUES (%s, %s, %s)", (hesap_adi, hesap_tipi, bakiye)); self.conn.commit()
             return True
         except psycopg2.IntegrityError: return False
-    def kasa_banka_getir(self): self.cursor.execute("SELECT * FROM kasa_banka"); return self.cursor.fetchall()
-    def kasa_banka_getir_by_id(self, hesap_id): self.cursor.execute("SELECT * FROM kasa_banka WHERE id = %s", (hesap_id,)); return self.cursor.fetchone()
+    def kasa_banka_getir(self):
+        self.cursor.execute("SELECT * FROM kasa_banka WHERE aktif_mi = TRUE")
+        return self.cursor.fetchall()
+    def kasa_banka_getir_by_id(self, hesap_id):
+        self.cursor.execute("SELECT * FROM kasa_banka WHERE id = %s", (hesap_id,))
+        return self.cursor.fetchone()
+
+    def kasa_banka_guncelle(self, hesap_id, hesap_adi, hesap_tipi, bakiye):
+        self.cursor.execute(
+            "UPDATE kasa_banka SET hesap_adi=%s, hesap_tipi=%s, bakiye=%s WHERE id=%s",
+            (hesap_adi, hesap_tipi, bakiye, hesap_id),
+        )
+        self.conn.commit()
+
+    def kasa_banka_sil(self, hesap_id):
+        self.cursor.execute("UPDATE kasa_banka SET aktif_mi=FALSE WHERE id=%s", (hesap_id,))
+        self.conn.commit()
     def kategori_ekle(self, ad):
         try:
             self.cursor.execute("INSERT INTO kategoriler (ad) VALUES (%s)", (ad,)); self.conn.commit()
