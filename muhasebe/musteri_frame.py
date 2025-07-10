@@ -171,8 +171,11 @@ class MusteriFrame(ctk.CTkFrame):
     def hesap_hareketlerini_goster(self, musteri_id):
         for i in self.hesap_tree.get_children(): self.hesap_tree.delete(i)
         for h in self.db.cari_hareketlerini_getir(musteri_id):
-            borc = f"{h[4]:.2f} ₺" if h[4] else ""; alacak = f"{h[5]:.2f} ₺" if h[5] else ""
-            bakiye = f"{h[6]:.2f} ₺"; self.hesap_tree.insert("", "end", values=(h[2], h[3], borc, alacak, bakiye))
+            borc = f"{h[4]:.2f} ₺" if h[4] else ""
+            alacak = f"{h[5]:.2f} ₺" if h[5] else ""
+            sayisal_bakiye = float(h[6] or 0.0)
+            bakiye = f"{sayisal_bakiye:.2f} ₺"
+            self.hesap_tree.insert("", "end", values=(h[2], h[3], borc, alacak, bakiye))
             
     def is_gecmisini_goster(self, musteri_id):
         for i in self.is_emri_tree.get_children(): self.is_emri_tree.delete(i)
