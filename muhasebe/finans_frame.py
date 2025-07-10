@@ -179,8 +179,8 @@ class FinansFrame(ctk.CTkFrame):
 
         if basarili:
             messagebox.showinfo("Başarılı", "Finansal hareket başarıyla kaydedildi.")
-            self.formu_temizle()
             self.liste_yenile()
+            self.formu_temizle()
         else:
             messagebox.showerror("Hata", "Kayıt sırasında bir sorun oluştu.")
         
