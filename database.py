@@ -544,7 +544,7 @@ class Database:
                 SELECT tarih, aciklama, borc, alacak, tip
                 FROM finansal_hareketler
                 WHERE cari_id = %s AND aktif_mi = TRUE
-                ORDER BY tarih DESC, id DESC
+                ORDER BY tarih ASC, id ASC
                 """
                 )
                 cursor.execute(sql, (cari_id,))
@@ -554,7 +554,7 @@ class Database:
                 SELECT tarih, aciklama, borc, alacak, tip
                 FROM finansal_hareketler
                 WHERE aktif_mi = TRUE
-                ORDER BY tarih DESC, id DESC
+                ORDER BY tarih ASC, id ASC
                 """
                 )
                 cursor.execute(sql)
