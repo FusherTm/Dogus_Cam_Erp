@@ -170,7 +170,7 @@ class MusteriFrame(ctk.CTkFrame):
 
     def hesap_hareketlerini_goster(self, musteri_id):
         for i in self.hesap_tree.get_children(): self.hesap_tree.delete(i)
-        for h in self.db.musteri_hesap_hareketlerini_getir(musteri_id):
+        for h in self.db.cari_hareketlerini_getir(musteri_id):
             borc = f"{h[4]:.2f} ₺" if h[4] else ""; alacak = f"{h[5]:.2f} ₺" if h[5] else ""
             bakiye = f"{h[6]:.2f} ₺"; self.hesap_tree.insert("", "end", values=(h[2], h[3], borc, alacak, bakiye))
             
@@ -278,7 +278,7 @@ class MusteriFrame(ctk.CTkFrame):
             return messagebox.showerror("Hata", "Önce bir müşteri seçin.")
 
         musteri = self.db.musteri_getir_by_id(self.selected_musteri_id)
-        hareketler = self.db.musteri_hesap_hareketlerini_getir(self.selected_musteri_id)
+        hareketler = self.db.cari_hareketlerini_getir(self.selected_musteri_id)
         html = self._ekstre_html_olustur(musteri, hareketler)
 
         fd, html_path = tempfile.mkstemp(suffix='.html')
@@ -348,7 +348,7 @@ class MusteriFrame(ctk.CTkFrame):
                              Paragraph(f"Telefon: {musteri[3]}", styles['Normal']),
                              Spacer(1,12)]
                     data = [["Tarih","Açıklama","Borç","Alacak","Bakiye"]]
-                    for h in self.db.musteri_hesap_hareketlerini_getir(musteri[0]):
+                    for h in self.db.cari_hareketlerini_getir(musteri[0]):
                         data.append([h[2], h[3],
                                      f"{h[4]:.2f}" if h[4] else '',
                                      f"{h[5]:.2f}" if h[5] else '',

@@ -129,7 +129,7 @@ class TemperFrame(ctk.CTkFrame):
 
             self.db.temper_emri_ekle(self.secili_musteri_id_yeni_siparis, firma_must, nitelik, miktar, fiyat, tarih)
             if self.secili_musteri_id_yeni_siparis:
-                self.db.musteri_hesap_hareketi_ekle(self.secili_musteri_id_yeni_siparis, tarih, f"Temper: {nitelik}", fiyat, 0)
+                self.db.cari_hareket_ekle(self.secili_musteri_id_yeni_siparis, tarih, f"Temper: {nitelik}", fiyat, 0, "Gelir")
             messagebox.showinfo("Başarılı", "Temper siparişi başarıyla eklendi.")
             self.temper_emirlerini_goster()
             if self.secili_musteri_id_yeni_siparis and hasattr(self.app, 'musteri_frame'):
