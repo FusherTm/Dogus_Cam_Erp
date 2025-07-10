@@ -43,7 +43,7 @@ class Database:
                         miktar REAL, fatura_id INTEGER, aciklama TEXT,
                         FOREIGN KEY (urun_id) REFERENCES envanter (id) ON DELETE CASCADE
                     )''')
-        c.execute('''CREATE TABLE IF NOT EXISTS Cariler (
+        c.execute('''CREATE TABLE IF NOT EXISTS cariler (
                         id SERIAL PRIMARY KEY,
                         firma_adi TEXT NOT NULL UNIQUE,
                         yetkili TEXT,
@@ -51,17 +51,13 @@ class Database:
                         email TEXT,
                         adres TEXT,
                         bakiye NUMERIC DEFAULT 0,
-                        cari_tipi TEXT NOT NULL
-                    )''')
-        c.execute('''CREATE TABLE IF NOT EXISTS musteri_hesap_hareketleri (
-                        id SERIAL PRIMARY KEY, musteri_id INTEGER, tarih TEXT, aciklama TEXT,
-                        borc REAL, alacak REAL, bakiye REAL, fatura_id INTEGER,
-                        FOREIGN KEY (musteri_id) REFERENCES Cariler (id) ON DELETE CASCADE
+                        cari_tipi TEXT NOT NULL,
+                        aktif_mi BOOLEAN DEFAULT TRUE
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS faturalar (
                         id SERIAL PRIMARY KEY, musteri_id INTEGER, tarih TEXT,
                         fatura_no TEXT UNIQUE, fatura_tipi TEXT, toplam_tutar REAL,
-                        FOREIGN KEY (musteri_id) REFERENCES Cariler (id) ON DELETE SET NULL
+                        FOREIGN KEY (musteri_id) REFERENCES cariler (id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS fatura_kalemleri (
                         id SERIAL PRIMARY KEY, fatura_id INTEGER, urun_id INTEGER,
@@ -98,12 +94,17 @@ class Database:
                         id SERIAL PRIMARY KEY, ad TEXT UNIQUE NOT NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS finansal_hareketler (
-                        id SERIAL PRIMARY KEY, tarih TEXT NOT NULL, aciklama TEXT,
-                        gelir REAL, gider REAL, kategori_id INTEGER, hesap_id INTEGER,
-                        musteri_id INTEGER, odeme_yontemi TEXT DEFAULT 'Nakit',
-                        FOREIGN KEY (kategori_id) REFERENCES kategoriler (id) ON DELETE SET NULL,
-                        FOREIGN KEY (hesap_id) REFERENCES kasa_banka (id) ON DELETE SET NULL,
-                        FOREIGN KEY (musteri_id) REFERENCES Cariler (id) ON DELETE SET NULL
+                        id SERIAL PRIMARY KEY,
+                        cari_id INTEGER,
+                        tarih TEXT NOT NULL,
+                        aciklama TEXT,
+                        borc NUMERIC,
+                        alacak NUMERIC,
+                        bakiye NUMERIC,
+                        tip TEXT,
+                        fatura_id INTEGER,
+                        aktif_mi BOOLEAN DEFAULT TRUE,
+                        FOREIGN KEY (cari_id) REFERENCES cariler (id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS sabit_giderler (
                         id SERIAL PRIMARY KEY, gider_adi TEXT UNIQUE NOT NULL, tutar REAL NOT NULL,
@@ -119,7 +120,7 @@ class Database:
                         durum TEXT,
                         tarih TEXT,
                         liste_dosyasi TEXT,
-                        FOREIGN KEY (musteri_id) REFERENCES Cariler(id) ON DELETE SET NULL
+                        FOREIGN KEY (musteri_id) REFERENCES cariler(id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS temper_emirleri (
                         id SERIAL PRIMARY KEY,
@@ -130,7 +131,7 @@ class Database:
                         fiyat REAL,
                         durum TEXT,
                         tarih TEXT,
-                        FOREIGN KEY (musteri_id) REFERENCES Cariler(id) ON DELETE SET NULL
+                        FOREIGN KEY (musteri_id) REFERENCES cariler(id) ON DELETE SET NULL
                     )''')
         c.execute('''CREATE TABLE IF NOT EXISTS cam_listeleri (
                         id SERIAL PRIMARY KEY,
@@ -184,8 +185,16 @@ class Database:
         for table, cols in {
             'is_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL'), ('liste_dosyasi', 'TEXT')],
             'temper_emirleri': [('firma_musterisi', 'TEXT'), ('fiyat', 'REAL')],
-            'finansal_hareketler': [('odeme_yontemi', "TEXT DEFAULT 'Nakit'")],
-            'kasa_banka': [('aktif_mi', 'BOOLEAN DEFAULT TRUE')]
+            'finansal_hareketler': [
+                ('tip', 'TEXT'),
+                ('cari_id', 'INTEGER'),
+                ('borc', 'NUMERIC'),
+                ('alacak', 'NUMERIC'),
+                ('bakiye', 'NUMERIC'),
+                ('aktif_mi', 'BOOLEAN DEFAULT TRUE')
+            ],
+            'kasa_banka': [('aktif_mi', 'BOOLEAN DEFAULT TRUE')],
+            'cariler': [('aktif_mi', 'BOOLEAN DEFAULT TRUE')]
         }.items():
             self.cursor.execute(
                 "SELECT column_name FROM information_schema.columns WHERE table_name = %s",
@@ -254,7 +263,7 @@ class Database:
     def cari_ekle(self, firma_adi, yetkili, telefon, email, adres, cari_tipi):
         try:
             self.cursor.execute(
-                "INSERT INTO Cariler (firma_adi, yetkili, telefon, email, adres, bakiye, cari_tipi) VALUES (%s, %s, %s, %s, %s, 0, %s)",
+                "INSERT INTO cariler (firma_adi, yetkili, telefon, email, adres, bakiye, cari_tipi, aktif_mi) VALUES (%s, %s, %s, %s, %s, 0, %s, TRUE)",
                 (firma_adi, yetkili, telefon, email, adres, cari_tipi),
             )
             self.conn.commit()
@@ -269,9 +278,9 @@ class Database:
         return self.cari_ekle(firma_adi, yetkili, telefon, email, adres, "Tedarikçi")
 
     def carileri_getir(self, arama_terimi="", cari_tipi=None):
-        query = "SELECT * FROM Cariler"
+        query = "SELECT * FROM cariler"
         params = []
-        conditions = []
+        conditions = ["aktif_mi = TRUE"]
         if arama_terimi:
             conditions.append("firma_adi LIKE %s"); params.append(f'%{arama_terimi}%')
         if cari_tipi:
@@ -290,7 +299,7 @@ class Database:
 
     def cari_guncelle(self, id, firma_adi, yetkili, telefon, email, adres):
         self.cursor.execute(
-            "UPDATE Cariler SET firma_adi=%s, yetkili=%s, telefon=%s, email=%s, adres=%s WHERE id=%s",
+            "UPDATE cariler SET firma_adi=%s, yetkili=%s, telefon=%s, email=%s, adres=%s WHERE id=%s",
             (firma_adi, yetkili, telefon, email, adres, id),
         )
         self.conn.commit()
@@ -302,7 +311,7 @@ class Database:
         self.cari_guncelle(id, firma_adi, yetkili, telefon, email, adres)
 
     def cari_sil(self, id):
-        self.cursor.execute("DELETE FROM Cariler WHERE id=%s", (id,))
+        self.cursor.execute("UPDATE cariler SET aktif_mi=FALSE WHERE id=%s", (id,))
         self.conn.commit()
 
     def musteri_sil(self, id):
@@ -312,7 +321,7 @@ class Database:
         self.cari_sil(id)
 
     def cari_getir_by_id(self, cari_id):
-        self.cursor.execute("SELECT * FROM Cariler WHERE id=%s", (cari_id,))
+        self.cursor.execute("SELECT * FROM cariler WHERE id=%s AND aktif_mi = TRUE", (cari_id,))
         return self.cursor.fetchone()
 
     def musteri_getir_by_id(self, musteri_id):
@@ -321,21 +330,27 @@ class Database:
     def tedarikci_getir_by_id(self, tedarikci_id):
         return self.cari_getir_by_id(tedarikci_id)
 
-    def musteri_hesap_hareketi_ekle(self, musteri_id, tarih, aciklama, borc, alacak, fatura_id=None):
-        self.cursor.execute("SELECT bakiye FROM Cariler WHERE id=%s", (musteri_id,))
+    def cari_hareket_ekle(self, cari_id, tarih, aciklama, borc, alacak, tip=None, fatura_id=None):
+        self.cursor.execute("SELECT bakiye FROM cariler WHERE id=%s", (cari_id,))
         son_bakiye_tuple = self.cursor.fetchone()
-        son_bakiye = son_bakiye_tuple[0] if son_bakiye_tuple else 0
+        son_bakiye = son_bakiye_tuple[0] if son_bakiye_tuple else Decimal('0')
         borc_decimal = Decimal(str(borc))
         alacak_decimal = Decimal(str(alacak))
         yeni_bakiye = son_bakiye + borc_decimal - alacak_decimal
         self.cursor.execute(
-            '''INSERT INTO musteri_hesap_hareketleri (musteri_id, tarih, aciklama, borc, alacak, bakiye, fatura_id) VALUES (%s, %s, %s, %s, %s, %s, %s)''',
-            (musteri_id, tarih, aciklama, borc_decimal, alacak_decimal, yeni_bakiye, fatura_id),
+            '''INSERT INTO finansal_hareketler (cari_id, tarih, aciklama, borc, alacak, bakiye, tip, fatura_id, aktif_mi)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)''',
+            (cari_id, tarih, aciklama, borc_decimal, alacak_decimal, yeni_bakiye, tip, fatura_id),
         )
-        self.cursor.execute("UPDATE Cariler SET bakiye = %s WHERE id = %s", (yeni_bakiye, musteri_id))
+        self.cursor.execute("UPDATE cariler SET bakiye = %s WHERE id = %s", (yeni_bakiye, cari_id))
         self.conn.commit()
-    def musteri_hesap_hareketlerini_getir(self, musteri_id):
-        self.cursor.execute("SELECT * FROM musteri_hesap_hareketleri WHERE musteri_id = %s ORDER BY tarih ASC, id ASC", (musteri_id,)); return self.cursor.fetchall()
+
+    def cari_hareketlerini_getir(self, cari_id):
+        self.cursor.execute(
+            "SELECT * FROM finansal_hareketler WHERE cari_id = %s AND aktif_mi = TRUE ORDER BY tarih ASC, id ASC",
+            (cari_id,),
+        )
+        return self.cursor.fetchall()
 
     # --- FATURA ---
     def fatura_ekle(self, musteri_id, tarih, fatura_no, fatura_tipi, toplam_tutar):
@@ -353,7 +368,7 @@ class Database:
         self.cursor.execute("INSERT INTO fatura_kalemleri (fatura_id, urun_id, miktar, birim_fiyat, toplam) VALUES (%s, %s, %s, %s, %s)", (fatura_id, urun_id, miktar, birim_fiyat, toplam)); self.conn.commit()
     
     def faturalari_getir(self, arama_terimi=""):
-        query = "SELECT f.id, f.fatura_no, f.tarih, m.firma_adi, f.fatura_tipi, f.toplam_tutar FROM faturalar f LEFT JOIN Cariler m ON f.musteri_id = m.id"
+        query = "SELECT f.id, f.fatura_no, f.tarih, m.firma_adi, f.fatura_tipi, f.toplam_tutar FROM faturalar f LEFT JOIN cariler m ON f.musteri_id = m.id"
         params = []
         if arama_terimi: query += " WHERE f.fatura_no LIKE %s OR m.firma_adi LIKE %s"; params.extend([f'%{arama_terimi}%', f'%{arama_terimi}%'])
         query += " ORDER BY f.tarih DESC, f.id DESC"
@@ -491,11 +506,19 @@ class Database:
         cursor = None
         try:
             cursor = self.conn.cursor()
+            borc_dec = Decimal(str(borc))
+            alacak_dec = Decimal(str(alacak))
+            self.cursor.execute("SELECT bakiye FROM cariler WHERE id=%s", (cari_id,))
+            last = self.cursor.fetchone()
+            bakiye = last[0] if last else Decimal('0')
+            yeni_bakiye = bakiye + borc_dec - alacak_dec
             sql = """
-            INSERT INTO finansal_hareketler (tarih, aciklama, borc, alacak, tip, cari_id, aktif_mi)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO finansal_hareketler (tarih, aciklama, borc, alacak, tip, cari_id, bakiye, aktif_mi)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
-            cursor.execute(sql, (tarih, aciklama, borc, alacak, tip, cari_id, aktif_mi))
+            cursor.execute(sql, (tarih, aciklama, borc_dec, alacak_dec, tip, cari_id, yeni_bakiye, aktif_mi))
+            if cari_id:
+                self.cursor.execute("UPDATE cariler SET bakiye=%s WHERE id=%s", (yeni_bakiye, cari_id))
             self.conn.commit()
             return True
         except Exception as e:
@@ -506,8 +529,8 @@ class Database:
             if cursor:
                 cursor.close()
         
-    def finansal_hareketleri_getir(self, cari_id):
-        """Verilen cari ID'sine ait tüm aktif finansal hareketleri çeker."""
+    def finansal_hareketleri_getir(self, cari_id=None):
+        """Cari ID verildiğinde ilgili hareketleri, verilmezse tüm aktif hareketleri döner."""
         if not self.conn:
             return []
 
@@ -515,15 +538,26 @@ class Database:
         cursor = None
         try:
             cursor = self.conn.cursor()
-            sql = (
+            if cari_id is not None:
+                sql = (
+                    """
+                SELECT tarih, aciklama, borc, alacak, tip
+                FROM finansal_hareketler
+                WHERE cari_id = %s AND aktif_mi = TRUE
+                ORDER BY tarih DESC, id DESC
                 """
-            SELECT tarih, aciklama, borc, alacak, tip
-            FROM finansal_hareketler
-            WHERE cari_id = %s AND aktif_mi = TRUE
-            ORDER BY tarih DESC, id DESC
-            """
-            )
-            cursor.execute(sql, (cari_id,))
+                )
+                cursor.execute(sql, (cari_id,))
+            else:
+                sql = (
+                    """
+                SELECT tarih, aciklama, borc, alacak, tip
+                FROM finansal_hareketler
+                WHERE aktif_mi = TRUE
+                ORDER BY tarih DESC, id DESC
+                """
+                )
+                cursor.execute(sql)
             hareketler = cursor.fetchall()
         except Exception as e:
             print(f"Finansal hareketler getirilirken hata: {e}")
@@ -533,7 +567,11 @@ class Database:
         return hareketler
         
     def hesap_hareketlerini_getir(self, hesap_id):
-        self.cursor.execute("SELECT tarih, aciklama, gelir, gider FROM finansal_hareketler WHERE hesap_id = %s ORDER BY tarih DESC, id DESC", (hesap_id,)); return self.cursor.fetchall()
+        self.cursor.execute(
+            "SELECT tarih, aciklama, borc, alacak FROM finansal_hareketler WHERE hesap_id = %s AND aktif_mi = TRUE ORDER BY tarih DESC, id DESC",
+            (hesap_id,),
+        )
+        return self.cursor.fetchall()
         
     # --- İŞ EMİRLERİ ---
     def is_emri_ekle(self, musteri_id, firma_musterisi, urun_niteligi, miktar_m2, fiyat, tarih=None, durum="Bekliyor"):
@@ -549,7 +587,7 @@ class Database:
     def is_emirlerini_getir(self, arama_terimi=""):
         query = (
             "SELECT i.id, i.tarih, m.firma_adi, i.urun_niteligi, i.miktar_m2, i.durum "
-            "FROM is_emirleri i LEFT JOIN Cariler m ON i.musteri_id = m.id"
+            "FROM is_emirleri i LEFT JOIN cariler m ON i.musteri_id = m.id"
         )
         params = ()
         if arama_terimi:
@@ -654,7 +692,7 @@ class Database:
     def temper_emirlerini_getir(self, arama_terimi=""):
         query = (
             "SELECT t.id, t.tarih, m.firma_adi, t.urun_niteligi, t.miktar_m2, t.durum "
-            "FROM temper_emirleri t LEFT JOIN Cariler m ON t.musteri_id = m.id"
+            "FROM temper_emirleri t LEFT JOIN cariler m ON t.musteri_id = m.id"
         )
         params = ()
         if arama_terimi:
@@ -675,7 +713,11 @@ class Database:
         try: son_gun = (datetime.date(yil, ay + 1, 1) - datetime.timedelta(days=1)).day if ay < 12 else 31
         except ValueError: son_gun = 28
         bitis_tarih = f"{yil}-{ay:02d}-{son_gun}"
-        self.cursor.execute("SELECT SUM(gelir), SUM(gider) FROM finansal_hareketler WHERE tarih BETWEEN %s AND %s", (baslangic_tarih, bitis_tarih)); aylik_gelir, aylik_gider = self.cursor.fetchone()
+        self.cursor.execute(
+            "SELECT SUM(borc), SUM(alacak) FROM finansal_hareketler WHERE aktif_mi = TRUE AND tarih BETWEEN %s AND %s",
+            (baslangic_tarih, bitis_tarih),
+        )
+        aylik_gelir, aylik_gider = self.cursor.fetchone()
         self.cursor.execute("SELECT SUM(tutar) FROM sabit_giderler"); sabit_giderler_toplami = self.cursor.fetchone()[0]
         return {"aylik_gelir": aylik_gelir or 0, "aylik_degisken_gider": aylik_gider or 0, "toplam_sabit_gider": sabit_giderler_toplami or 0}
 

@@ -178,16 +178,6 @@ class FinansFrame(ctk.CTkFrame):
         )
 
         if basarili:
-            # Eğer işlem belirli bir cari (müşteri/tedarikçi) ile ilişkiliyse
-            # cari hesap ekstresine de hareketi ekle
-            if secilen_cari_id is not None:
-                self.db.musteri_hesap_hareketi_ekle(
-                    secilen_cari_id,
-                    tarih,
-                    aciklama,
-                    borc,
-                    alacak,
-                )
             messagebox.showinfo("Başarılı", "Finansal hareket başarıyla kaydedildi.")
             self.formu_temizle()
             self.liste_yenile()

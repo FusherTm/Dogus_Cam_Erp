@@ -106,10 +106,12 @@ class RaporFrame(ctk.CTkFrame):
 
         # Hareketleri listele
         hareketler = self.db.finansal_hareketleri_getir()
-        aylik_hareketler = [h for h in hareketler if datetime.datetime.strptime(h[1], '%Y-%m-%d').month == ay and datetime.datetime.strptime(h[1], '%Y-%m-%d').year == yil]
+        aylik_hareketler = [h for h in hareketler if datetime.datetime.strptime(h[0], '%Y-%m-%d').month == ay and datetime.datetime.strptime(h[0], '%Y-%m-%d').year == yil]
         for h in aylik_hareketler:
-            if h[3] > 0: tree.insert("", "end", values=("Gelir", h[2], f"{h[3]:.2f} ₺"), tags=('gelir',))
-            if h[4] > 0: tree.insert("", "end", values=("Değişken Gider", h[2], f"{h[4]:.2f} ₺"), tags=('gider',))
+            if h[2] > 0:
+                tree.insert("", "end", values=("Gelir", h[1], f"{h[2]:.2f} ₺"), tags=('gelir',))
+            if h[3] > 0:
+                tree.insert("", "end", values=("Değişken Gider", h[1], f"{h[3]:.2f} ₺"), tags=('gider',))
         
         # Sabit giderleri listele
         tree.insert("", "end", values=("", "--- Sabit Giderler ---", ""), tags=('baslik',))

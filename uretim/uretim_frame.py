@@ -259,7 +259,7 @@ class UretimFrame(ctk.CTkFrame):
                 shutil.copy(self.yuklenen_liste_path, dest)
                 self.db.is_emri_liste_dosyasi_guncelle(is_id, dest)
             if self.secili_musteri_id_yeni_is_emri:
-                self.db.musteri_hesap_hareketi_ekle(self.secili_musteri_id_yeni_is_emri, tarih, f"İş Emri: {nitelik}", fiyat, 0)
+                self.db.cari_hareket_ekle(self.secili_musteri_id_yeni_is_emri, tarih, f"İş Emri: {nitelik}", fiyat, 0, "Gelir")
             messagebox.showinfo("Başarılı", "İş emri başarıyla eklendi.")
             self.is_emirlerini_goster()
             if self.secili_musteri_id_yeni_is_emri and hasattr(self.app, 'musteri_frame'):
