@@ -285,7 +285,8 @@ class MusteriFrame(ctk.CTkFrame):
             return messagebox.showerror("Hata", "Önce bir müşteri seçin.")
 
         musteri = self.db.musteri_getir_by_id(self.selected_musteri_id)
-        hareketler = self.db.cari_hareketlerini_getir(self.selected_musteri_id)
+        # Yeni veritabanı yapısına uyumlu olarak finansal hareketleri al
+        hareketler = self.db.finansal_hareketleri_getir(self.selected_musteri_id)
         html = self._ekstre_html_olustur(musteri, hareketler)
 
         fd, html_path = tempfile.mkstemp(suffix='.html')
@@ -308,11 +309,21 @@ class MusteriFrame(ctk.CTkFrame):
         tel = musteri[3] or ''
         email = musteri[4] or ''
         rows = ''
+        calisan_bakiye = 0.0
+        # 'hareketler' artık (tarih, aciklama, borc, alacak, tip) şeklinde geliyor
         for h in hareketler:
-            borc = f"{h[4]:.2f}" if h[4] else ''
-            alacak = f"{h[5]:.2f}" if h[5] else ''
-            bakiye = f"{h[6]:.2f}"
-            rows += f"<tr><td>{h[2]}</td><td>{h[3]}</td><td class='num'>{borc}</td><td class='num'>{alacak}</td><td class='num'>{bakiye}</td></tr>"
+            borc = float(h[2] or 0.0)
+            alacak = float(h[3] or 0.0)
+            calisan_bakiye += borc - alacak
+            borc_str = f"{borc:.2f}" if borc else ''
+            alacak_str = f"{alacak:.2f}" if alacak else ''
+            bakiye_str = f"{calisan_bakiye:.2f}"
+            rows += (
+                f"<tr><td>{h[0]}</td><td>{h[1]}</td>"
+                f"<td class='num'>{borc_str}</td>"
+                f"<td class='num'>{alacak_str}</td>"
+                f"<td class='num'>{bakiye_str}</td></tr>"
+            )
         html = f"""
         <html><head><meta charset='utf-8'>
         <style>
@@ -355,11 +366,18 @@ class MusteriFrame(ctk.CTkFrame):
                              Paragraph(f"Telefon: {musteri[3]}", styles['Normal']),
                              Spacer(1,12)]
                     data = [["Tarih","Açıklama","Borç","Alacak","Bakiye"]]
-                    for h in self.db.cari_hareketlerini_getir(musteri[0]):
-                        data.append([h[2], h[3],
-                                     f"{h[4]:.2f}" if h[4] else '',
-                                     f"{h[5]:.2f}" if h[5] else '',
-                                     f"{h[6]:.2f}"])
+                    calisan_bakiye = 0.0
+                    for h in self.db.finansal_hareketleri_getir(musteri[0]):
+                        borc = float(h[2] or 0.0)
+                        alacak = float(h[3] or 0.0)
+                        calisan_bakiye += borc - alacak
+                        data.append([
+                            h[0],
+                            h[1],
+                            f"{borc:.2f}" if borc else '',
+                            f"{alacak:.2f}" if alacak else '',
+                            f"{calisan_bakiye:.2f}",
+                        ])
                     table = Table(data, colWidths=[60,170,50,50,50])
                     table.setStyle(TableStyle([
                         ('GRID',(0,0),(-1,-1),0.5,colors.black),
